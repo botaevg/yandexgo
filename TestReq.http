@@ -1,4 +1,4 @@
-GET http://localhost:8080/
+GET http://localhost:8080/short
 Accept: application/json
 
 ###
@@ -6,7 +6,7 @@ POST http://localhost:8080/
 Content-Type: application/json
 
 {
-  "urlorigin": "yandex"
+  "urlorigin": "http://www.example.com"
 }
 
 ###
