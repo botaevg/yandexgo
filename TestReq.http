@@ -3,10 +3,9 @@ Accept: application/json
 
 ###
 POST http://localhost:8080/
-Content-Type: application/json
+Content-Type: text/html; charset=UTF-8
 
-{
-  "urlorigin": "http://www.example.com"
-}
+http://www.example.com
+
 
 ###

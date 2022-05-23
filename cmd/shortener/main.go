@@ -1,13 +1,15 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 )
+
+const letterAll = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 type Subj struct {
 	//ID        int    `json:"id"`
@@ -17,6 +19,13 @@ type Subj struct {
 
 var ListUrl = make(map[string]string)
 
+func shortUrl() string {
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = letterAll[rand.Intn(len(letterAll))]
+	}
+	return string(b)
+}
 func GetHandler(w http.ResponseWriter, r *http.Request) {
 	// этот обработчик принимает только запросы, отправленные методом GET
 	if r.Method != http.MethodGet {
@@ -41,21 +50,21 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var subj Subj
+	//var subj Subj
 	b, err := io.ReadAll(r.Body)
 	// обрабатываем ошибку
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
-	} else {
+	} /*else {
 		err = json.Unmarshal(b, &subj)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-	}
-	shortURL := "short" // subj.URLorigin + "_short"
-	ListUrl[shortURL] = subj.URLorigin
+	}*/
+	shortURL := shortUrl() // subj.URLorigin + "_short"
+	ListUrl[shortURL] = string(b)
 	w.WriteHeader(201)
 	//fmt.Fprintln(w, shortURL)
 	w.Write([]byte(shortURL))
