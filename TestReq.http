@@ -1,5 +1,4 @@
-GET http://localhost:8080/short
-Accept: application/json
+GET http://localhost:8080/XVlBz
 
 ###
 POST http://localhost:8080/

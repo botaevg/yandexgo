@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
@@ -36,10 +37,15 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	w.Header().Set("Location", ListUrl[id])
-	w.Header().Set("content-type", "application/json")
+	//w.Header().Set("content-type", "application/json")
 
 	w.WriteHeader(307)
-	w.Write([]byte(ListUrl[id])) //
+	fmt.Println(ListUrl[id])
+	if ListUrl[id] == "" {
+		w.Write([]byte("Не нашёл"))
+	} else {
+		w.Write([]byte(ListUrl[id]))
+	} //
 
 }
 
@@ -64,10 +70,11 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}*/
 	shortURL := shortUrl() // subj.URLorigin + "_short"
+
 	ListUrl[shortURL] = string(b)
 	w.WriteHeader(201)
 	//fmt.Fprintln(w, shortURL)
-	w.Write([]byte(shortURL))
+	w.Write([]byte("http://localhost:8080/" + shortURL))
 
 	//w.Write([]byte(b))
 }
