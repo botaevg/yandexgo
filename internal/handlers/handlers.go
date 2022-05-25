@@ -10,7 +10,7 @@ import (
 
 const letterAll = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-var ListUrl = make(map[string]string)
+var ListURL = make(map[string]string)
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
 	// этот обработчик принимает только запросы, отправленные методом GET
@@ -21,19 +21,19 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	w.Header().Set("Location", ListUrl[id])
+	w.Header().Set("Location", ListURL[id])
 
 	w.WriteHeader(307)
-	fmt.Println(ListUrl[id])
-	if ListUrl[id] == "" {
+	fmt.Println(ListURL[id])
+	if ListURL[id] == "" {
 		w.Write([]byte("Не найдено"))
 	} else {
-		w.Write([]byte(ListUrl[id]))
+		w.Write([]byte(ListURL[id]))
 	}
 
 }
 
-func shortUrl() string {
+func shortURL() string {
 	b := make([]byte, 5)
 	for i := range b {
 		b[i] = letterAll[rand.Intn(len(letterAll))]
@@ -55,9 +55,9 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := shortUrl()
+	shortURL := shortURL()
 
-	ListUrl[shortURL] = string(b)
+	ListURL[shortURL] = string(b)
 	w.WriteHeader(201)
 	w.Write([]byte("http://localhost:8080/" + shortURL))
 

@@ -83,10 +83,11 @@ func TestGetHandler(t *testing.T) {
 			h := http.HandlerFunc(handlers.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
+			defer res.Body.Close()
 			resBody, err := ioutil.ReadAll(res.Body)
 			require.NoError(t, err)
-			err = res.Body.Close()
-			require.NoError(t, err)
+			/*err = res.Body.Close()
+			require.NoError(t, err)*/
 
 			// теперь проверяем метод GET
 			requestGet := httptest.NewRequest(http.MethodGet, "/"+string(resBody), nil)
@@ -98,7 +99,9 @@ func TestGetHandler(t *testing.T) {
 			// запускаем сервер
 			hGet.ServeHTTP(wGet, requestGet)
 			resGet := wGet.Result()
+			defer resGet.Body.Close()
 			assert.Equal(t, tt.want.code, resGet.StatusCode)
+
 			//assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
 			/*resGetBody, err := ioutil.ReadAll(resGet.Body)
 			require.NoError(t, err)
