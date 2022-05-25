@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -25,8 +26,8 @@ func TestPostHandler(t *testing.T) {
 		{
 			name: "post test #1",
 			want: want{
-				code: 201,
-				//response:    "short",
+				code:     201,
+				response: "",
 				//contentType: "",
 			},
 			inputBody: "http://www.example.com",
@@ -37,17 +38,17 @@ func TestPostHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(PostHandler)
+			h := http.HandlerFunc(handlers.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)
 
-			/*resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := ioutil.ReadAll(res.Body)
 			require.NoError(t, err)
 			err = res.Body.Close()
-			require.NoError(t, err)*/
+			require.NoError(t, err)
 
-			//assert.Equal(t, tt.want.response, string(resBody))
+			assert.NotEqual(t, tt.want.response, string(resBody))
 		})
 	}
 }
@@ -79,7 +80,7 @@ func TestGetHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(PostHandler)
+			h := http.HandlerFunc(handlers.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 			resBody, err := ioutil.ReadAll(res.Body)
@@ -93,19 +94,21 @@ func TestGetHandler(t *testing.T) {
 			// создаём новый Recorder
 			wGet := httptest.NewRecorder()
 			// определяем хендлер
-			hGet := http.HandlerFunc(GetHandler)
+			hGet := http.HandlerFunc(handlers.GetHandler)
 			// запускаем сервер
 			hGet.ServeHTTP(wGet, requestGet)
 			resGet := wGet.Result()
 			assert.Equal(t, tt.want.code, resGet.StatusCode)
+			//assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
 			/*resGetBody, err := ioutil.ReadAll(resGet.Body)
 			require.NoError(t, err)
 			err = resGet.Body.Close()
 			require.NoError(t, err)
 
 			//resGet.Location()
-			assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
+
 			assert.Equal(t, tt.want.location, string(resGetBody))*/
+
 		})
 	}
 }
