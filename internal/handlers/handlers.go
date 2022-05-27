@@ -63,7 +63,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if string(b) != "" {
-		var shortURLs string = shortURL()
+		shortURLs := shortURL()
 		ListURL[shortURLs] = string(b)
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(basicURL + shortURLs))
