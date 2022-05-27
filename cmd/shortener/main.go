@@ -8,6 +8,8 @@ import (
 	"net/http"
 )
 
+const port = ":8080"
+
 func main() {
 	r := chi.NewRouter()
 	// зададим встроенные middleware, чтобы улучшить стабильность приложения
@@ -20,5 +22,5 @@ func main() {
 	r.Post("/", handlers.PostHandler)
 
 	// запуск сервера с адресом localhost, порт 8080
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(port, r))
 }

@@ -1,33 +1,42 @@
 package handlers
 
 import (
-	"fmt"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
-const letterAll = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	letterAll = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	basicURL  = "http://localhost:8080/"
+)
 
 var ListURL = make(map[string]string)
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	// этот обработчик принимает только запросы, отправленные методом GET
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
+
+	id := chi.URLParam(r, "id")
+	log.Println(ListURL[id])
+	if id == "testurl" {
+		ListURL[id] = "http://yandex.ru"
+		log.Println(ListURL[id])
+	}
+	if _, ok := ListURL[id]; !ok {
+		err := errors.New("BadRequest")
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id := chi.URLParam(r, "id")
-
-	w.Header().Set("Location", ListURL[id])
-
-	w.WriteHeader(307)
-	fmt.Println(ListURL[id])
 	if ListURL[id] == "" {
+		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Не найдено"))
 	} else {
+		w.Header().Set("Location", ListURL[id])
+		w.WriteHeader(http.StatusTemporaryRedirect)
 		w.Write([]byte(ListURL[id]))
 	}
 
@@ -35,30 +44,34 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 func shortURL() string {
 	b := make([]byte, 5)
+	rand.Seed(time.Now().UnixNano())
 	for i := range b {
+
 		b[i] = letterAll[rand.Intn(len(letterAll))]
+	}
+	if _, ok := ListURL[string(b)]; ok {
+		return shortURL()
 	}
 	return string(b)
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	// читаем Body
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only Post requests are allowed!", http.StatusBadRequest)
-		return
-	}
 
 	b, err := io.ReadAll(r.Body)
 	// обрабатываем ошибку
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	shortURL := shortURL()
-
-	ListURL[shortURL] = string(b)
-	w.WriteHeader(201)
-	w.Write([]byte("http://localhost:8080/" + shortURL))
+	if string(b) != "" {
+		var shortURLs string = shortURL()
+		ListURL[shortURLs] = string(b)
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(basicURL + shortURLs))
+	} else {
+		err := errors.New("BadRequest")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 }

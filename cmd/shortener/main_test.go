@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/botaevg/yandexgo/internal/handlers"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -26,11 +27,20 @@ func TestPostHandler(t *testing.T) {
 		{
 			name: "post test #1",
 			want: want{
-				code:     201,
+				code:     http.StatusCreated,
 				response: "",
 				//contentType: "",
 			},
 			inputBody: "http://www.example.com",
+		},
+		{
+			name: "post test #2",
+			want: want{
+				code:     http.StatusBadRequest,
+				response: "",
+				//contentType: "",
+			},
+			inputBody: "",
 		},
 	}
 	for _, tt := range tests {
@@ -53,6 +63,40 @@ func TestPostHandler(t *testing.T) {
 	}
 }
 
+func TestRouter(t *testing.T) {
+	r := chi.NewRouter()
+	ts := httptest.NewServer(r)
+	ts.URL = "http://localhost:8080"
+
+	defer ts.Close()
+
+	resp := testRequest(t, ts, "GET", "/testurl")
+	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+	assert.Equal(t, "http://yandex.ru", resp.Header.Get("Location"))
+
+	resp = testRequest(t, ts, "GET", "/tst")
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, "", resp.Header.Get("Location"))
+
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) *http.Response {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	//fmt.Println(ts.URL + path)
+	require.NoError(t, err)
+	//http.DefaultClient.CheckRedirect
+	http.DefaultClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	return resp
+}
+
+/*
 func TestGetHandler(t *testing.T) {
 	type want struct {
 		code     int
@@ -60,38 +104,35 @@ func TestGetHandler(t *testing.T) {
 		location string
 	}
 	tests := []struct {
-		name      string
-		want      want
-		inputBody string
+		name    string
+		want    want
+		testURL string
 	}{
+		{
+			name: "get test #1",
+			want: want{
+				code: http.StatusTemporaryRedirect,
+				//response: "",
+				location: "https://yandex.ru",
+			},
+			testURL: "/testurl",
+		},
 		{
 			name: "get test #2",
 			want: want{
-				code: 307,
+				code: http.StatusBadRequest,
 				//response: "",
-				location: "http://www.example.com",
+				location: "",
 			},
-			inputBody: "http://www.example.com",
+			testURL: "/Tst",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//записываем тестовые данные
-			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
-			//request.Header.Set("content-type", "application/json")
-			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlers.PostHandler)
-			h.ServeHTTP(w, request)
-			res := w.Result()
-			defer res.Body.Close()
-			resBody, err := ioutil.ReadAll(res.Body)
-			require.NoError(t, err)
-			/*err = res.Body.Close()
-			require.NoError(t, err)*/
 
 			// теперь проверяем метод GET
-			requestGet := httptest.NewRequest(http.MethodGet, "/"+string(resBody), nil)
-
+			requestGet := httptest.NewRequest(http.MethodGet, tt.testURL, nil)
+			httptest.Server{port}
 			// создаём новый Recorder
 			wGet := httptest.NewRecorder()
 			// определяем хендлер
@@ -102,7 +143,7 @@ func TestGetHandler(t *testing.T) {
 			defer resGet.Body.Close()
 			assert.Equal(t, tt.want.code, resGet.StatusCode)
 
-			//assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
+			assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
 			/*resGetBody, err := ioutil.ReadAll(resGet.Body)
 			require.NoError(t, err)
 			err = resGet.Body.Close()
@@ -110,8 +151,10 @@ func TestGetHandler(t *testing.T) {
 
 			//resGet.Location()
 
-			assert.Equal(t, tt.want.location, string(resGetBody))*/
+			assert.Equal(t, tt.want.location, string(resGetBody))
 
 		})
 	}
 }
+
+*/
