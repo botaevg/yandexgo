@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -20,10 +19,10 @@ var ListURL = make(map[string]string)
 func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
-	log.Println(ListURL[id])
+	//данные для теста
 	if id == "testurl" {
 		ListURL[id] = "http://yandex.ru"
-		log.Println(ListURL[id])
+
 	}
 	if _, ok := ListURL[id]; !ok {
 		err := errors.New("BadRequest")

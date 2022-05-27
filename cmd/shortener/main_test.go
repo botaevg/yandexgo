@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -63,11 +64,12 @@ func TestPostHandler(t *testing.T) {
 	}
 }
 
+/*
 func TestRouter(t *testing.T) {
 	r := chi.NewRouter()
 	ts := httptest.NewServer(r)
 	ts.URL = "http://localhost:8080"
-
+	ts.
 	defer ts.Close()
 
 	resp := testRequest(t, ts, "GET", "/testurl")
@@ -94,9 +96,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) *http.R
 	defer resp.Body.Close()
 
 	return resp
-}
+}*/
 
-/*
 func TestGetHandler(t *testing.T) {
 	type want struct {
 		code     int
@@ -113,9 +114,9 @@ func TestGetHandler(t *testing.T) {
 			want: want{
 				code: http.StatusTemporaryRedirect,
 				//response: "",
-				location: "https://yandex.ru",
+				location: "http://yandex.ru",
 			},
-			testURL: "/testurl",
+			testURL: "testurl",
 		},
 		{
 			name: "get test #2",
@@ -124,21 +125,25 @@ func TestGetHandler(t *testing.T) {
 				//response: "",
 				location: "",
 			},
-			testURL: "/Tst",
+			testURL: "Tst",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			// теперь проверяем метод GET
-			requestGet := httptest.NewRequest(http.MethodGet, tt.testURL, nil)
-			httptest.Server{port}
+			requestGet := httptest.NewRequest(http.MethodGet, "/{id}", nil)
+
 			// создаём новый Recorder
 			wGet := httptest.NewRecorder()
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.testURL)
+			requestGet = requestGet.WithContext(context.WithValue(requestGet.Context(), chi.RouteCtxKey, rctx))
 			// определяем хендлер
 			hGet := http.HandlerFunc(handlers.GetHandler)
 			// запускаем сервер
 			hGet.ServeHTTP(wGet, requestGet)
+
 			resGet := wGet.Result()
 			defer resGet.Body.Close()
 			assert.Equal(t, tt.want.code, resGet.StatusCode)
@@ -152,9 +157,7 @@ func TestGetHandler(t *testing.T) {
 			//resGet.Location()
 
 			assert.Equal(t, tt.want.location, string(resGetBody))
-
+			*/
 		})
 	}
 }
-
-*/
