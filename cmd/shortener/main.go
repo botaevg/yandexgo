@@ -5,12 +5,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 const port = ":8080"
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	r := chi.NewRouter()
 	// зададим встроенные middleware, чтобы улучшить стабильность приложения
 	r.Use(middleware.RequestID)

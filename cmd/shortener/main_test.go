@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -64,40 +65,6 @@ func TestPostHandler(t *testing.T) {
 	}
 }
 
-/*
-func TestRouter(t *testing.T) {
-	r := chi.NewRouter()
-	ts := httptest.NewServer(r)
-	ts.URL = "http://localhost:8080"
-	ts.
-	defer ts.Close()
-
-	resp := testRequest(t, ts, "GET", "/testurl")
-	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
-	assert.Equal(t, "http://yandex.ru", resp.Header.Get("Location"))
-
-	resp = testRequest(t, ts, "GET", "/tst")
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, "", resp.Header.Get("Location"))
-
-}
-
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) *http.Response {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
-	//fmt.Println(ts.URL + path)
-	require.NoError(t, err)
-	//http.DefaultClient.CheckRedirect
-	http.DefaultClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-
-	defer resp.Body.Close()
-
-	return resp
-}*/
-
 func TestGetHandler(t *testing.T) {
 	type want struct {
 		code     int
@@ -105,18 +72,20 @@ func TestGetHandler(t *testing.T) {
 		location string
 	}
 	tests := []struct {
-		name    string
-		want    want
-		testURL string
+		name      string
+		want      want
+		testURL   string
+		inputBody string
 	}{
 		{
 			name: "get test #1",
 			want: want{
 				code: http.StatusTemporaryRedirect,
 				//response: "",
-				location: "http://yandex.ru",
+				location: "http://www.example.com",
 			},
-			testURL: "testurl",
+			testURL:   "testurl",
+			inputBody: "http://www.example.com",
 		},
 		{
 			name: "get test #2",
@@ -125,19 +94,41 @@ func TestGetHandler(t *testing.T) {
 				//response: "",
 				location: "",
 			},
-			testURL: "Tst",
+			testURL:   "Tst",
+			inputBody: "http://www.example.com",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
+			//request.Header.Set("content-type", "application/json")
+			w := httptest.NewRecorder()
+			h := http.HandlerFunc(handlers.PostHandler)
+			h.ServeHTTP(w, request)
+			res := w.Result()
+			//assert.Equal(t, tt.want.code, res.StatusCode)
+
+			resBody, err := ioutil.ReadAll(res.Body)
+			require.NoError(t, err)
+			err = res.Body.Close()
+			require.NoError(t, err)
+
+			//assert.NotEqual(t, tt.want.response, string(resBody))
+			pathSlice := strings.Split(string(resBody), "/")
+			pathLast := pathSlice[(len(pathSlice) - 1)]
+			fmt.Println(string(pathLast))
 
 			// теперь проверяем метод GET
 			requestGet := httptest.NewRequest(http.MethodGet, "/{id}", nil)
-
 			// создаём новый Recorder
 			wGet := httptest.NewRecorder()
 			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("id", tt.testURL)
+			if tt.want.location == "" {
+				rctx.URLParams.Add("id", tt.testURL)
+			} else {
+				rctx.URLParams.Add("id", pathLast)
+			}
+
 			requestGet = requestGet.WithContext(context.WithValue(requestGet.Context(), chi.RouteCtxKey, rctx))
 			// определяем хендлер
 			hGet := http.HandlerFunc(handlers.GetHandler)
