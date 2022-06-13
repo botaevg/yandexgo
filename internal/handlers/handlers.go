@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -48,7 +49,8 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		foundURL := false
 		for _, line := range strings.Split(string(data), "\n") {
 			if strings.HasPrefix(line, id) {
-				u = strings.Trim(line, id+":")
+				u = strings.Join(strings.Split(line, ":")[1:], ":")
+				log.Print(u)
 				foundURL = true
 				break
 			}
