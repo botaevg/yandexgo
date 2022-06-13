@@ -64,7 +64,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", ListURL[id])
+	w.Header().Set("Location", u)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Write([]byte(u))
 
