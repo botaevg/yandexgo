@@ -29,7 +29,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(handlers.GzipHandle)
-	r.Post("/api/shorten", handlers.ApiPost)
+	r.Post("/api/shorten", handlers.APIPost)
 	r.Get("/{id}", handlers.GetHandler)
 	r.Post("/", handlers.PostHandler)
 

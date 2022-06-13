@@ -89,7 +89,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func ApiPost(w http.ResponseWriter, r *http.Request) {
+func APIPost(w http.ResponseWriter, r *http.Request) {
 	PostFull(w, r, true)
 	/*
 		b, err := io.ReadAll(r.Body)
@@ -120,7 +120,7 @@ func ApiPost(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func PostFull(w http.ResponseWriter, r *http.Request, isApi bool) {
+func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
 
 	var reader io.Reader
 
@@ -144,7 +144,7 @@ func PostFull(w http.ResponseWriter, r *http.Request, isApi bool) {
 	}
 	//var strURL string
 	strURL := string(b)
-	if isApi {
+	if isAPI {
 		obj := URL{}
 		if err := json.Unmarshal(b, &obj); err != nil {
 			panic(err)
@@ -168,7 +168,8 @@ func PostFull(w http.ResponseWriter, r *http.Request, isApi bool) {
 		}
 		w.WriteHeader(http.StatusCreated)
 		baseURL, _ := os.LookupEnv("BASE_URL")
-		if isApi {
+		if isAPI {
+			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"result":"` + baseURL + shortURLs + `"}`))
 		} else {
 			w.Write([]byte(baseURL + shortURLs))
