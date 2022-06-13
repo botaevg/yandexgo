@@ -1,7 +1,7 @@
 POST http://localhost:8080/api/shorten
 Content-Type: application/json
 
-{"url":"http://www.google1.com"}
+{"url":"http://tiveywmtuq4.yandex/ljcqlsub6gd"}
 
 ###
 GET http://localhost:8080/fAGRw

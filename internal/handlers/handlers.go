@@ -166,12 +166,14 @@ func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
 			defer file.Close()
 			file.WriteString(shortURLs + ":" + strURL + "\n")
 		}
-		w.WriteHeader(http.StatusCreated)
+
 		baseURL, _ := os.LookupEnv("BASE_URL")
 		if isAPI {
 			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"result":"` + baseURL + shortURLs + `"}`))
 		} else {
+			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(baseURL + shortURLs))
 		}
 	} else {
