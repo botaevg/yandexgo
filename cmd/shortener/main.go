@@ -4,14 +4,21 @@ import (
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
-const port = ":8080"
+//const SERVER_ADDRESS = ":8080"
 
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found")
+	}
+}
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
@@ -21,10 +28,15 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
+	r.Use(handlers.GzipHandle)
+	r.Post("/api/shorten", handlers.ApiPost)
 	r.Get("/{id}", handlers.GetHandler)
 	r.Post("/", handlers.PostHandler)
 
 	// запуск сервера с адресом localhost, порт 8080
-	log.Fatal(http.ListenAndServe(port, r))
+	serverAddress, exists := os.LookupEnv("SERVER_ADDRESS")
+	if exists {
+		log.Print(serverAddress)
+	}
+	log.Fatal(http.ListenAndServe(serverAddress, r))
 }

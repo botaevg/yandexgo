@@ -1,10 +1,23 @@
-GET http://localhost:8080/XVlBz
+POST http://localhost:8080/api/shorten
+Content-Type: application/json
+
+{"url":"http://www.google1.com"}
+
+###
+GET http://localhost:8080/fAGRw
 
 ###
 POST http://localhost:8080/
 Content-Type: text/html; charset=UTF-8
 
-http://www.example.com
+http://www.mail.ru
+
+
+###
+POST http://localhost:8080/
+Content-Type: text/html; charset=UTF-8
+
+http://www.yax.com
 
 
 ###
