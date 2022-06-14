@@ -15,6 +15,7 @@ import (
 //const SERVER_ADDRESS = ":8080"
 
 func init() {
+
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
 	}
@@ -38,5 +39,6 @@ func main() {
 	if exists {
 		log.Print(serverAddress)
 	}
+
 	log.Fatal(http.ListenAndServe(serverAddress, r))
 }

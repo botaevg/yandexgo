@@ -93,6 +93,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 func APIPost(w http.ResponseWriter, r *http.Request) {
 	PostFull(w, r, true)
+
 	/*
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -170,6 +171,12 @@ func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
 		}
 
 		baseURL, _ := os.LookupEnv("BASE_URL")
+
+		x := baseURL[len(baseURL)-1]
+		log.Print(x, string(x))
+		if string(x) != "/" {
+			baseURL += "/"
+		}
 		if isAPI {
 			w.Header().Set("content-type", "application/json")
 			w.WriteHeader(http.StatusCreated)
