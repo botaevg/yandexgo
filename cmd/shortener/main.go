@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,10 +20,15 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
 	}
+	//os.Setenv("SERVER_ADDRESS", )
+	flag.String("a", ":8080", "server address")
+	flag.String("b", "http://localhost:8080/", "base URL")
+	flag.String("f", "shortlist.txt", "file storage path")
 }
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
+	flag.Parse()
 	r := chi.NewRouter()
 	// зададим встроенные middleware, чтобы улучшить стабильность приложения
 	r.Use(middleware.RequestID)
