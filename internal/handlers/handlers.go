@@ -172,10 +172,12 @@ func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
 
 		baseURL, _ := os.LookupEnv("BASE_URL")
 
-		x := baseURL[len(baseURL)-1]
-		log.Print(x, string(x))
-		if string(x) != "/" {
-			baseURL += "/"
+		if len(baseURL) > 0 {
+			x := baseURL[len(baseURL)-1]
+			log.Print(x, string(x))
+			if string(x) != "/" {
+				baseURL += "/"
+			}
 		}
 		if isAPI {
 			w.Header().Set("content-type", "application/json")
