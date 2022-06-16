@@ -17,9 +17,9 @@ func GetCofing() Config {
 	if err := env.Parse(&cfg); err != nil {
 		fmt.Printf("%+v\n", err)
 	}
-	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "base url")
-	flag.StringVar(&cfg.FileStoragePath, "f", "shortlist.txt", "file storage path")
+	flag.StringVar(&cfg.ServerAddress, "-a", ":8080", "port to listen on")
+	flag.StringVar(&cfg.BaseURL, "-b", "http://localhost:8080/", "base url")
+	flag.StringVar(&cfg.FileStoragePath, "-f", "shortlist.txt", "file storage path")
 	flag.Parse()
 	return cfg
 }
