@@ -1,7 +1,7 @@
 POST http://localhost:8080/api/shorten
 Content-Type: application/json
 
-{"url":"http://vk.com"}
+{"url":"http://vk1.com"}
 
 ###
 GET http://localhost:8080/fAGRw
@@ -10,7 +10,7 @@ GET http://localhost:8080/fAGRw
 POST http://localhost:8080/
 Content-Type: text/html; charset=UTF-8
 
-http://www.mail.ru
+http://www.mail2.ru
 
 
 ###

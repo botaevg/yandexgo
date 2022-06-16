@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"log"
@@ -19,6 +20,16 @@ const (
 	//FILE_STORAGE_PATH = "shortlist.txt"
 )
 
+type handler struct {
+	config config.Config
+}
+
+func New(cfg config.Config) *handler {
+	return &handler{
+		config: cfg,
+	}
+}
+
 type URL struct {
 	FullURL  string `json:"url"`
 	ShortURL string `json:"result"`
@@ -26,13 +37,13 @@ type URL struct {
 
 var ListURL = make(map[string]string)
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
 	var u string
-	fileStorage, exists := os.LookupEnv("FILE_STORAGE_PATH")
-	if !exists || fileStorage == "" {
+	fileStorage := h.config.FileStoragePath // os.LookupEnv("FILE_STORAGE_PATH")
+	if fileStorage == "" {                  //!exists ||
 
 		if _, ok := ListURL[id]; !ok {
 			http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
@@ -85,14 +96,14 @@ func shortURL() string {
 	return string(b)
 }
 
-func PostHandler(w http.ResponseWriter, r *http.Request) {
+func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
-	PostFull(w, r, false)
+	PostFull(w, r, false, h.config)
 
 }
 
-func APIPost(w http.ResponseWriter, r *http.Request) {
-	PostFull(w, r, true)
+func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
+	PostFull(w, r, true, h.config)
 
 	/*
 		b, err := io.ReadAll(r.Body)
@@ -123,7 +134,7 @@ func APIPost(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
+func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool, h config.Config) {
 
 	var reader io.Reader
 
@@ -157,8 +168,8 @@ func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
 
 	if strURL != "" {
 		shortURLs := shortURL()
-		fileStorage, exists := os.LookupEnv("FILE_STORAGE_PATH")
-		if !exists || fileStorage == "" {
+		fileStorage := h.FileStoragePath // os.LookupEnv("FILE_STORAGE_PATH")
+		if fileStorage == "" {           // !exists ||
 			ListURL[shortURLs] = string(b)
 		} else {
 			file, err := os.OpenFile(fileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
@@ -170,7 +181,7 @@ func PostFull(w http.ResponseWriter, r *http.Request, isAPI bool) {
 			file.WriteString(shortURLs + ":" + strURL + "\n")
 		}
 
-		baseURL, _ := os.LookupEnv("BASE_URL")
+		baseURL := h.BaseURL // os.LookupEnv("BASE_URL")
 
 		if len(baseURL) > 0 {
 			x := baseURL[len(baseURL)-1]

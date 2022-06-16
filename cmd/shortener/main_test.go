@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,13 @@ func TestPostHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlers.PostHandler)
+			x := handlers.New(config.Config{
+
+				ServerAddress:   ":8080",
+				BaseURL:         "http://localhost:8080/",
+				FileStoragePath: "shortlist.txt",
+			})
+			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)
@@ -103,7 +110,13 @@ func TestGetHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlers.PostHandler)
+			x := handlers.New(config.Config{
+
+				ServerAddress:   ":8080",
+				BaseURL:         "http://localhost:8080/",
+				FileStoragePath: "shortlist.txt",
+			})
+			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 			//assert.Equal(t, tt.want.code, res.StatusCode)
@@ -131,7 +144,7 @@ func TestGetHandler(t *testing.T) {
 
 			requestGet = requestGet.WithContext(context.WithValue(requestGet.Context(), chi.RouteCtxKey, rctx))
 			// определяем хендлер
-			hGet := http.HandlerFunc(handlers.GetHandler)
+			hGet := http.HandlerFunc(x.GetHandler)
 			// запускаем сервер
 			hGet.ServeHTTP(wGet, requestGet)
 
