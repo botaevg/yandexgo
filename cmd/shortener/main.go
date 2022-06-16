@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
@@ -26,9 +27,14 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	appConfig := config.GetCofing()
+
+	flag.StringVar(&appConfig.ServerAddress, "a", ":8080", "port to listen on")
+	flag.StringVar(&appConfig.BaseURL, "b", "http://localhost:8080/", "base url")
+	flag.StringVar(&appConfig.FileStoragePath, "f", "shortlist.txt", "file storage path")
+	flag.Parse()
+
 	myApp := NewApp(appConfig)
 	myApp.Run()
-	//flag.Parse()
 
 }
 
