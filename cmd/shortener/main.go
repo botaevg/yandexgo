@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/go-chi/chi/v5"
@@ -26,7 +27,7 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	appConfig := config.GetCofing()
-
+	flag.Parse()
 	myApp := NewApp(appConfig)
 	myApp.Run()
 
