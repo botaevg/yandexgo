@@ -26,7 +26,7 @@ import (
 }*/
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	appConfig := config.GetCofing()
+	appConfig := config.GetConfig()
 	flag.Parse()
 	myApp := NewApp(appConfig)
 	myApp.Run()
