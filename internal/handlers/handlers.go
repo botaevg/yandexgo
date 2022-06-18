@@ -80,23 +80,11 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	if strURL != "" {
 		shortURLs := shorten.ShortURL()
-		//fileStorage := h.config.FileStoragePath // os.LookupEnv("FILE_STORAGE_PATH")
-		if h.storage.AddShort(strURL, shortURLs) != nil {
+		err := h.storage.AddShort(strURL, shortURLs)
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		/*
-			if fileStorage == "" {                  // !exists ||
-				ListURL[shortURLs] = string(b)
-			} else {
-				file, err := os.OpenFile(fileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				defer file.Close()
-				file.WriteString(shortURLs + ":" + strURL + "\n")
-			}*/
 
 		baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
 
@@ -148,22 +136,12 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 
 	if strURL != "" {
 		shortURLs := shorten.ShortURL()
-		if h.storage.AddShort(strURL, shortURLs) != nil {
+		err := h.storage.AddShort(strURL, shortURLs)
+		if err != nil {
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		/*fileStorage := h.config.FileStoragePath // os.LookupEnv("FILE_STORAGE_PATH")
-		if fileStorage == "" {                  // !exists ||
-			ListURL[shortURLs] = string(b)
-		} else {
-			file, err := os.OpenFile(fileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer file.Close()
-			file.WriteString(shortURLs + ":" + strURL + "\n")
-		}*/
 
 		baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
 

@@ -46,7 +46,7 @@ func (a App) Run() {
 	var storage repositories.Storage
 	if a.config.FileStoragePath != "" {
 		storage = repositories.FileStorage{
-			a.config.FileStoragePath,
+			FileStorage: a.config.FileStoragePath,
 		}
 	} else {
 		storage = repositories.InMemoryStorage{}
@@ -56,13 +56,6 @@ func (a App) Run() {
 	r.Post("/api/shorten", h.APIPost)
 	r.Get("/{id}", h.GetHandler)
 	r.Post("/", h.PostHandler)
-	//r.Post("/", handlers.PostHandler)
-
-	// запуск сервера с адресом localhost, порт 8080
-	/*serverAddress, exists := os.LookupEnv("SERVER_ADDRESS")
-	if exists {
-		log.Print(serverAddress)
-	}*/
 
 	log.Fatal(http.ListenAndServe(a.config.ServerAddress, r))
 }

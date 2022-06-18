@@ -22,6 +22,6 @@ func GetConfig() Config {
 	if err := env.Parse(&cfg); err != nil {
 		fmt.Printf("%+v\n", err)
 	}
-	
+
 	return cfg
 }

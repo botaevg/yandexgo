@@ -55,10 +55,11 @@ func (f InMemoryStorage) GetFullURL(id string) (string, error) {
 }
 func (f FileStorage) AddShort(body string, s string) error {
 	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
-	defer file.Close()
+
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	file.WriteString(s + ":" + body + "\n")
 	return nil
 }

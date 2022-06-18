@@ -59,7 +59,7 @@ func TestPostHandler(t *testing.T) {
 				FileStoragePath: "shortlist.txt",
 			},
 				repositories.FileStorage{
-					"shortlist.txt",
+					FileStorage: "shortlist.txt",
 				},
 			)
 			h := http.HandlerFunc(x.PostHandler)
@@ -122,7 +122,7 @@ func TestGetHandler(t *testing.T) {
 				FileStoragePath: "shortlist.txt",
 			},
 				repositories.FileStorage{
-					"shortlist.txt",
+					FileStorage: "shortlist.txt",
 				},
 			)
 			h := http.HandlerFunc(x.PostHandler)
@@ -171,6 +171,56 @@ func TestGetHandler(t *testing.T) {
 
 			assert.Equal(t, tt.want.location, string(resGetBody))
 			*/
+		})
+	}
+}
+
+func TestApiPost(t *testing.T) {
+	type want struct {
+		code        int
+		response    string
+		contentType string
+	}
+	tests := []struct {
+		name      string
+		want      want
+		inputBody string
+	}{
+		// TODO: Add test cases.
+		{
+			name: "post test #1",
+			want: want{
+				code:        http.StatusCreated,
+				response:    "",
+				contentType: "application/json",
+			},
+			inputBody: `{"url":"yandex.ru"}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.inputBody))
+			request.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			x := handlers.New(config.Config{
+				ServerAddress:   ":8080",
+				BaseURL:         "http://localhost:8080/",
+				FileStoragePath: "",
+			},
+				repositories.InMemoryStorage{},
+			)
+			h := http.HandlerFunc(x.APIPost)
+			h.ServeHTTP(w, request)
+			res := w.Result()
+			assert.Equal(t, tt.want.code, res.StatusCode)
+			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
+			resBody, err := ioutil.ReadAll(res.Body)
+			require.NoError(t, err)
+			err = res.Body.Close()
+			require.NoError(t, err)
+
+			assert.NotEqual(t, tt.want.response, string(resBody))
 		})
 	}
 }
