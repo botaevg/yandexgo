@@ -4,6 +4,9 @@ import (
 	"flag"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
+	"github.com/botaevg/yandexgo/internal/repositories"
+
+	"github.com/botaevg/yandexgo/internal/middleapp"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
@@ -12,18 +15,6 @@ import (
 	"time"
 )
 
-//const SERVER_ADDRESS = ":8080"
-
-/*func init() {
-
-	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found")
-	}
-	//os.Setenv("SERVER_ADDRESS", )
-	flag.String("a", ":8080", "server address")
-	flag.String("b", "http://localhost:8080/", "base URL")
-	flag.String("f", "shortlist.txt", "file storage path")
-}*/
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	appConfig := config.GetConfig()
@@ -50,9 +41,17 @@ func (a App) Run() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(handlers.GzipHandle)
+	r.Use(middleapp.GzipHandle)
 
-	h := handlers.New(a.config)
+	var storage repositories.Storage
+	if a.config.FileStoragePath != "" {
+		storage = repositories.FileStorage{
+			a.config.FileStoragePath,
+		}
+	} else {
+		storage = repositories.InMemoryStorage{}
+	}
+	h := handlers.New(a.config, storage)
 
 	r.Post("/api/shorten", h.APIPost)
 	r.Get("/{id}", h.GetHandler)

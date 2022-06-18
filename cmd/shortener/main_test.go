@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
+	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,12 +52,16 @@ func TestPostHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-			x := handlers.New(config.Config{
 
+			x := handlers.New(config.Config{
 				ServerAddress:   ":8080",
 				BaseURL:         "http://localhost:8080/",
 				FileStoragePath: "shortlist.txt",
-			})
+			},
+				repositories.FileStorage{
+					"shortlist.txt",
+				},
+			)
 			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
@@ -115,7 +120,11 @@ func TestGetHandler(t *testing.T) {
 				ServerAddress:   ":8080",
 				BaseURL:         "http://localhost:8080/",
 				FileStoragePath: "shortlist.txt",
-			})
+			},
+				repositories.FileStorage{
+					"shortlist.txt",
+				},
+			)
 			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
