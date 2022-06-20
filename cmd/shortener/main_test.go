@@ -186,15 +186,32 @@ func TestApiPost(t *testing.T) {
 		want      want
 		inputBody string
 	}{
-		// TODO: Add test cases.
 		{
-			name: "post test #1",
+			name: "api post test #1",
 			want: want{
 				code:        http.StatusCreated,
 				response:    "",
 				contentType: "application/json",
 			},
 			inputBody: `{"url":"http://yandex.ru"}`,
+		},
+		{
+			name: "api post test #2",
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    "",
+				contentType: "text/plain; charset=utf-8",
+			},
+			inputBody: `{"url":"yandex"}`,
+		},
+		{
+			name: "api post test #3",
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    "",
+				contentType: "text/plain; charset=utf-8",
+			},
+			inputBody: "http://yandex.ru",
 		},
 	}
 	for _, tt := range tests {

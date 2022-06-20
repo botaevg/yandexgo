@@ -7,10 +7,8 @@ import (
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/go-chi/chi/v5"
 	"io"
-	"log"
 	"net/url"
 
-	"github.com/botaevg/yandexgo/internal/shorten"
 	"net/http"
 )
 
@@ -55,20 +53,6 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
-	//var reader io.Reader
-
-	/*if r.Header.Get(`Content-Encoding`) == `gzip` {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-	}*/
-
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
@@ -79,13 +63,12 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 	strURL := string(b)
 	_, err = url.ParseRequestURI(strURL)
 	if err != nil {
-		//if strURL == "" {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
 
-	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs)
+	shortURLs, err := h.storage.AddShort(strURL)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,20 +82,6 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
-
-	//var reader io.Reader
-
-	/*if r.Header.Get(`Content-Encoding`) == `gzip` {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-	}*/
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
@@ -130,13 +99,12 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 
 	_, err = url.ParseRequestURI(strURL)
 	if err != nil {
-		//if strURL == "" {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
 
-	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs)
+	shortURLs, err := h.storage.AddShort(strURL)
+
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -144,14 +112,6 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
-
-	if len(baseURL) > 0 {
-		x := baseURL[len(baseURL)-1]
-		log.Print(x, string(x))
-		if string(x) != "/" {
-			baseURL += "/"
-		}
-	}
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
