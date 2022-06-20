@@ -194,7 +194,7 @@ func TestApiPost(t *testing.T) {
 				response:    "",
 				contentType: "application/json",
 			},
-			inputBody: `{"url":"yandex.ru"}`,
+			inputBody: `{"url":"http://yandex.ru"}`,
 		},
 	}
 	for _, tt := range tests {
