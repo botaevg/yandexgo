@@ -21,37 +21,30 @@ type InMemoryStorage struct {
 }
 
 func (f FileStorage) GetFullURL(id string) (string, error) {
-	var u string
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
-		//http.Error(w, err.Error(), http.StatusInternalServerError)
-		return u, err
+		return "", err
 	}
-	foundURL := false
+
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, id) {
-			u = strings.Join(strings.Split(line, ":")[1:], ":")
-			//log.Print(u)
-			foundURL = true
-			break
+			return strings.Join(strings.Split(line, ":")[1:], ":"), nil
+
 		}
 	}
-	if !foundURL {
-		//http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
-		return u, errors.New("BadRequest")
-	}
-	return u, nil
+	return "", errors.New("BadRequest")
+
 }
 
 func (f InMemoryStorage) GetFullURL(id string) (string, error) {
-	var u string
+
 	if _, ok := ListURL[id]; !ok {
 
-		return u, errors.New("BadRequest")
+		return "", errors.New("BadRequest")
 	}
-	u = ListURL[id]
-	return u, nil
+
+	return ListURL[id], nil
 }
 func (f FileStorage) AddShort(body string, s string) error {
 	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
@@ -60,7 +53,10 @@ func (f FileStorage) AddShort(body string, s string) error {
 		return err
 	}
 	defer file.Close()
-	file.WriteString(s + ":" + body + "\n")
+	_, err = file.WriteString(s + ":" + body + "\n")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -68,4 +64,14 @@ func (f InMemoryStorage) AddShort(body string, s string) error {
 	//strURL := string(s)
 	ListURL[s] = body
 	return nil
+}
+
+func NewFileStorage(p string) *FileStorage {
+	return &FileStorage{
+		FileStorage: p,
+	}
+}
+
+func NewInMemoryStorage() *InMemoryStorage {
+	return &InMemoryStorage{}
 }

@@ -78,31 +78,30 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	strURL := string(b)
 
-	if strURL != "" {
-		shortURLs := shorten.ShortURL()
-		err := h.storage.AddShort(strURL, shortURLs)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
-
-		if len(baseURL) > 0 {
-			x := baseURL[len(baseURL)-1]
-			log.Print(x, string(x))
-			if string(x) != "/" {
-				baseURL += "/"
-			}
-		}
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(baseURL + shortURLs))
-
-	} else {
-		err := errors.New("BadRequest")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if strURL == "" {
+		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
+
+	shortURLs := shorten.ShortURL()
+	err = h.storage.AddShort(strURL, shortURLs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
+
+	/*if len(baseURL) > 0 {
+		x := baseURL[len(baseURL)-1]
+		log.Print(x, string(x))
+		if string(x) != "/" {
+			baseURL += "/"
+		}
+	}*/
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(baseURL + shortURLs))
+
 }
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
@@ -130,37 +129,35 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 
 	obj := URL{}
 	if err := json.Unmarshal(b, &obj); err != nil {
-		panic(err)
+		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
+		return
 	}
 	strURL := obj.FullURL
 
-	if strURL != "" {
-		shortURLs := shorten.ShortURL()
-		err := h.storage.AddShort(strURL, shortURLs)
-		if err != nil {
-
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
-
-		if len(baseURL) > 0 {
-			x := baseURL[len(baseURL)-1]
-			log.Print(x, string(x))
-			if string(x) != "/" {
-				baseURL += "/"
-			}
-		}
-
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"result":"` + baseURL + shortURLs + `"}`))
-
-	} else {
-		err := errors.New("BadRequest")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if strURL == "" {
+		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
 
+	shortURLs := shorten.ShortURL()
+	err = h.storage.AddShort(strURL, shortURLs)
+	if err != nil {
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
+
+	if len(baseURL) > 0 {
+		x := baseURL[len(baseURL)-1]
+		log.Print(x, string(x))
+		if string(x) != "/" {
+			baseURL += "/"
+		}
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(`{"result":"` + baseURL + shortURLs + `"}`))
 }

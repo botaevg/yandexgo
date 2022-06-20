@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
 	"github.com/botaevg/yandexgo/internal/repositories"
@@ -17,8 +16,11 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	appConfig := config.GetConfig()
-	flag.Parse()
+	appConfig, err := config.GetConfig()
+	if err != nil {
+		return
+	}
+	//flag.Parse()
 	myApp := NewApp(appConfig)
 	myApp.Run()
 
@@ -45,11 +47,9 @@ func (a App) Run() {
 
 	var storage repositories.Storage
 	if a.config.FileStoragePath != "" {
-		storage = repositories.FileStorage{
-			FileStorage: a.config.FileStoragePath,
-		}
+		storage = repositories.NewFileStorage(a.config.FileStoragePath)
 	} else {
-		storage = repositories.InMemoryStorage{}
+		storage = repositories.NewInMemoryStorage()
 	}
 	h := handlers.New(a.config, storage)
 

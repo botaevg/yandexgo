@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"github.com/caarlos0/env/v6"
 )
 
@@ -12,7 +11,7 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"` // envDefault:"shortlist.txt"`
 }
 
-func GetConfig() Config {
+func GetConfig() (Config, error) {
 
 	cfg := Config{}
 	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
@@ -20,8 +19,15 @@ func GetConfig() Config {
 	flag.StringVar(&cfg.FileStoragePath, "f", "shortlist.txt", "file storage path")
 	flag.Parse()
 	if err := env.Parse(&cfg); err != nil {
-		fmt.Printf("%+v\n", err)
+		//fmt.Printf("%+v\n", err)
+		return Config{}, err
+	}
+	if len(cfg.BaseURL) > 0 {
+		x := cfg.BaseURL[len(cfg.BaseURL)-1]
+		if string(x) != "/" {
+			cfg.BaseURL += "/"
+		}
 	}
 
-	return cfg
+	return cfg, nil
 }
