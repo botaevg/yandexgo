@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-var ListURL = make(map[string]string)
-
 type Storage interface {
 	AddShort(string, string) error
 	GetFullURL(string) (string, error)
@@ -17,8 +15,7 @@ type FileStorage struct {
 	FileStorage string
 }
 
-type InMemoryStorage struct {
-}
+type InMemoryStorage map[string]string
 
 func (f FileStorage) GetFullURL(id string) (string, error) {
 
@@ -39,12 +36,12 @@ func (f FileStorage) GetFullURL(id string) (string, error) {
 
 func (f InMemoryStorage) GetFullURL(id string) (string, error) {
 
-	if _, ok := ListURL[id]; !ok {
+	if _, ok := f[id]; !ok {
 
 		return "", errors.New("BadRequest")
 	}
 
-	return ListURL[id], nil
+	return f[id], nil
 }
 func (f FileStorage) AddShort(body string, s string) error {
 	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
@@ -62,7 +59,7 @@ func (f FileStorage) AddShort(body string, s string) error {
 
 func (f InMemoryStorage) AddShort(body string, s string) error {
 	//strURL := string(s)
-	ListURL[s] = body
+	f[s] = body
 	return nil
 }
 
@@ -73,5 +70,6 @@ func NewFileStorage(p string) *FileStorage {
 }
 
 func NewInMemoryStorage() *InMemoryStorage {
+	//var ListURL = make(map[string]string)
 	return &InMemoryStorage{}
 }

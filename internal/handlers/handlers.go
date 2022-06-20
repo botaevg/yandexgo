@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
@@ -9,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"io"
 	"log"
+	"net/url"
 
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"net/http"
@@ -55,9 +55,9 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
-	var reader io.Reader
+	//var reader io.Reader
 
-	if r.Header.Get(`Content-Encoding`) == `gzip` {
+	/*if r.Header.Get(`Content-Encoding`) == `gzip` {
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -67,9 +67,9 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 		defer gz.Close()
 	} else {
 		reader = r.Body
-	}
+	}*/
 
-	b, err := io.ReadAll(reader)
+	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,8 +77,9 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	strURL := string(b)
-
-	if strURL == "" {
+	_, err = url.ParseRequestURI(strURL)
+	if err != nil {
+		//if strURL == "" {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
@@ -92,13 +93,6 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
 
-	/*if len(baseURL) > 0 {
-		x := baseURL[len(baseURL)-1]
-		log.Print(x, string(x))
-		if string(x) != "/" {
-			baseURL += "/"
-		}
-	}*/
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(baseURL + shortURLs))
 
@@ -106,9 +100,9 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 
-	var reader io.Reader
+	//var reader io.Reader
 
-	if r.Header.Get(`Content-Encoding`) == `gzip` {
+	/*if r.Header.Get(`Content-Encoding`) == `gzip` {
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -118,9 +112,9 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 		defer gz.Close()
 	} else {
 		reader = r.Body
-	}
+	}*/
 
-	b, err := io.ReadAll(reader)
+	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -134,7 +128,9 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	}
 	strURL := obj.FullURL
 
-	if strURL == "" {
+	_, err = url.ParseRequestURI(strURL)
+	if err != nil {
+		//if strURL == "" {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
