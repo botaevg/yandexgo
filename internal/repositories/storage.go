@@ -2,13 +2,12 @@ package repositories
 
 import (
 	"errors"
-	"github.com/botaevg/yandexgo/internal/shorten"
 	"os"
 	"strings"
 )
 
 type Storage interface {
-	AddShort(string) (string, error)
+	AddShort(string, string) error
 	GetFullURL(string) (string, error)
 }
 
@@ -45,25 +44,24 @@ func (f InMemoryStorage) GetFullURL(id string) (string, error) {
 	return f[id], nil
 }
 
-func (f FileStorage) AddShort(body string) (string, error) {
+func (f FileStorage) AddShort(body string, s string) error {
 	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer file.Close()
-	s := shorten.ShortURL()
+
 	_, err = file.WriteString(s + ":" + body + "\n")
 	if err != nil {
-		return "", err
+		return err
 	}
-	return s, nil
+	return nil
 }
 
-func (f InMemoryStorage) AddShort(body string) (string, error) {
-	s := shorten.ShortURL()
+func (f InMemoryStorage) AddShort(body string, s string) error {
 	f[s] = body
-	return s, nil
+	return nil
 }
 
 func NewFileStorage(p string) *FileStorage {

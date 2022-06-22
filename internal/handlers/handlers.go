@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/repositories"
+	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/url"
@@ -67,7 +68,8 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURLs, err := h.storage.AddShort(strURL)
+	shortURLs := shorten.ShortURL()
+	err = h.storage.AddShort(strURL, shortURLs)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -103,7 +105,8 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURLs, err := h.storage.AddShort(strURL)
+	shortURLs := shorten.ShortURL()
+	err = h.storage.AddShort(strURL, shortURLs)
 
 	if err != nil {
 

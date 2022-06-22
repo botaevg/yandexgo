@@ -18,6 +18,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	appConfig, err := config.GetConfig()
 	if err != nil {
+		log.Print("Config error")
 		return
 	}
 	//flag.Parse()
