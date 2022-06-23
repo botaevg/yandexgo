@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"log"
 	"os"
 	"strings"
 )
@@ -15,7 +16,10 @@ type FileStorage struct {
 	FileStorage string
 }
 
-type InMemoryStorage map[string]string
+type InMemoryStorage struct {
+	dataURL map[string]string
+	//dataCookie
+}
 
 func (f FileStorage) GetFullURL(id string) (string, error) {
 
@@ -36,12 +40,12 @@ func (f FileStorage) GetFullURL(id string) (string, error) {
 
 func (f InMemoryStorage) GetFullURL(id string) (string, error) {
 
-	if _, ok := f[id]; !ok {
+	if _, ok := f.dataURL[id]; !ok {
 
 		return "", errors.New("BadRequest")
 	}
 
-	return f[id], nil
+	return f.dataURL[id], nil
 }
 
 func (f FileStorage) AddShort(body string, s string) error {
@@ -60,7 +64,7 @@ func (f FileStorage) AddShort(body string, s string) error {
 }
 
 func (f InMemoryStorage) AddShort(body string, s string) error {
-	f[s] = body
+	f.dataURL[s] = body
 	return nil
 }
 
@@ -71,5 +75,15 @@ func NewFileStorage(p string) *FileStorage {
 }
 
 func NewInMemoryStorage() *InMemoryStorage {
-	return &InMemoryStorage{}
+	IMS := InMemoryStorage{
+		//dataURL: map[string]string{},
+	}
+	if IMS.dataURL == nil {
+		log.Print("ИНИЦИАЛИЗАЦИЯ МАПЫ ПАМЯТИ")
+		IMS.dataURL = make(map[string]string)
+	} else {
+		log.Print("ОШИБКА ИНИЦИАЛИЗАЦИи МАПЫ ПАМЯТИ")
+	}
+
+	return &IMS
 }

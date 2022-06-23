@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -162,6 +163,8 @@ func TestGetHandler(t *testing.T) {
 			assert.Equal(t, tt.want.code, resGet.StatusCode)
 
 			assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
+			log.Print(resGet.Header.Get("Location"))
+			log.Print(tt.want.location)
 			/*resGetBody, err := ioutil.ReadAll(resGet.Body)
 			require.NoError(t, err)
 			err = resGet.Body.Close()
@@ -225,7 +228,7 @@ func TestApiPost(t *testing.T) {
 				BaseURL:         "http://localhost:8080/",
 				FileStoragePath: "",
 			},
-				repositories.InMemoryStorage{},
+				repositories.NewInMemoryStorage(),
 			)
 			h := http.HandlerFunc(x.APIPost)
 			h.ServeHTTP(w, request)

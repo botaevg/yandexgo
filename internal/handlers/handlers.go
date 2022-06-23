@@ -31,6 +31,18 @@ type URL struct {
 }
 
 func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		x, er := r.Cookie("id")
+		if er != nil {
+			log.Print("нет такого кука")
+			http.SetCookie(w, &http.Cookie{
+				Name:  "id",
+				Value: "13",
+			})
+		} else {
+
+			log.Print(x)
+		}*/
 
 	id := chi.URLParam(r, "id")
 
