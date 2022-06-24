@@ -13,7 +13,7 @@ type Storage interface {
 	GetFullURL(string) (string, error)
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
-	GetAllShort(string) (URLUser, error)
+	GetAllShort(string) ([]URLpair, error)
 }
 
 type FileStorage struct {
@@ -34,7 +34,7 @@ type InMemoryStorage struct {
 	dataCookie map[string][][]byte
 }
 
-func (f InMemoryStorage) GetAllShort(idUser string) (URLUser, error) {
+func (f InMemoryStorage) GetAllShort(idUser string) ([]URLpair, error) {
 	var urlUser []URLpair
 	for key, value := range f.dataURL {
 		if value[1] == idUser {
@@ -46,17 +46,17 @@ func (f InMemoryStorage) GetAllShort(idUser string) (URLUser, error) {
 		}
 	}
 	if len(urlUser) == 0 {
-		return URLUser{AllURL: urlUser}, errors.New("нет URL пользователя")
+		return urlUser, errors.New("нет URL пользователя")
 	}
-	return URLUser{AllURL: urlUser}, nil
+	return urlUser, nil
 }
 
-func (f FileStorage) GetAllShort(idUser string) (URLUser, error) {
+func (f FileStorage) GetAllShort(idUser string) ([]URLpair, error) {
 	var urlUser []URLpair
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
-		return URLUser{AllURL: urlUser}, errors.New("неоткрылся файл")
+		return urlUser, errors.New("неоткрылся файл")
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
@@ -72,9 +72,9 @@ func (f FileStorage) GetAllShort(idUser string) (URLUser, error) {
 	}
 
 	if len(urlUser) == 0 {
-		return URLUser{AllURL: urlUser}, errors.New("нет URL пользователя")
+		return urlUser, errors.New("нет URL пользователя")
 	}
-	return URLUser{AllURL: urlUser}, nil
+	return urlUser, nil
 }
 
 func (f FileStorage) GetFullURL(id string) (string, error) {

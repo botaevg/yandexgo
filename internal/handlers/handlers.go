@@ -36,7 +36,7 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 	log.Print(idUser)
 
-	var u repositories.URLUser
+	var u []repositories.URLpair
 
 	u, err := h.storage.GetAllShort(idUser)
 	if err != nil {
