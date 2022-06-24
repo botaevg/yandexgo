@@ -90,7 +90,7 @@ func DecryptID(s repositories.Storage, dst string) (string, error) {
 		log.Print(err)
 		return "", err
 	}
-	return hex.EncodeToString(id), nil //hex.EncodeToString(id)
+	return string(id), nil //hex.EncodeToString(id)
 }
 
 func VerificationCookie(h repositories.Storage, r *http.Request, w *http.ResponseWriter) string {
