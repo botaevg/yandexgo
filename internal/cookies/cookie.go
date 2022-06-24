@@ -28,40 +28,33 @@ var ID int = 0
 func CreateCookie(s repositories.Storage) (string, string) {
 	idStr := &ID
 	*idStr++
+	log.Print("новый ид пользователя: ")
 	log.Print(*idStr)
 	id := []byte(strconv.Itoa(*idStr))
-	log.Print(id)
 
 	key, err := generateRandom(aes.BlockSize)
 	if err != nil {
 		log.Print(err)
-		log.Print("1")
 		return "", ""
 	}
-	log.Print("2")
 	aesblock, err := aes.NewCipher(key)
-
+	if err != nil {
+		log.Print(err)
+		return "", ""
+	}
 	aesgcm, err := cipher.NewGCM(aesblock)
-
+	if err != nil {
+		log.Print(err)
+		return "", ""
+	}
 	nonce, err := generateRandom(aesgcm.NonceSize())
 	if err != nil {
 		return "", ""
 	}
 
 	dst := aesgcm.Seal(nil, nonce, id, nil)
-	//dst := make([]byte, aes.BlockSize)
-	log.Print("3")
-	log.Print(key)
-	log.Print(nonce)
-
-	//aesblock.Encrypt(dst, id)
-	log.Print("4")
-
-	//log.Print(dst)
 
 	s.AddCookie(hex.EncodeToString(dst), key, nonce)
-	log.Print("зашифрованный ид: ")
-	log.Print(dst)
 	log.Print("зашифрованный ид в виде строки: " + hex.EncodeToString(dst))
 
 	return hex.EncodeToString(dst), string(id)
@@ -69,12 +62,12 @@ func CreateCookie(s repositories.Storage) (string, string) {
 
 func DecryptID(s repositories.Storage, dst string) (string, error) {
 
-	slId, err := s.GetId(dst)
+	slID, err := s.GetID(dst)
 	if err != nil {
 		log.Print(err)
 		return "", err
 	}
-	aesblock, err := aes.NewCipher((slId[0]))
+	aesblock, err := aes.NewCipher((slID[0]))
 	if err != nil {
 		log.Print(err)
 		return "", err
@@ -85,29 +78,19 @@ func DecryptID(s repositories.Storage, dst string) (string, error) {
 		log.Print(err)
 		return "", err
 	}
-	log.Print("11")
-	log.Print((slId[0]))
-	log.Print((slId[1]))
 
 	x, err := hex.DecodeString(dst)
-	log.Print("5")
-	log.Print(x)
 	if err != nil {
 		log.Print(err)
-		log.Print("6")
 		return "", err
 	}
-	id, err := aesgcm.Open(nil, (slId[1]), x, nil)
-	log.Print("12")
+	id, err := aesgcm.Open(nil, (slID[1]), x, nil)
 	if err != nil {
 
 		log.Print(err)
-		log.Print(id)
-		log.Print("13")
 		return "", err
 	}
-	log.Print(string(id))
-	return string(id), nil //hex.EncodeToString(id)
+	return hex.EncodeToString(id), nil //hex.EncodeToString(id)
 }
 
 func VerificationCookie(h repositories.Storage, r *http.Request, w *http.ResponseWriter) string {
@@ -122,7 +105,6 @@ func VerificationCookie(h repositories.Storage, r *http.Request, w *http.Respons
 		})
 		return idUser
 	} else {
-		log.Print(x)
 		idUser, err := DecryptID(h, x.Value) //h.storage.GetId(x.Value)
 		if err != nil {
 			log.Print(err)

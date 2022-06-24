@@ -12,7 +12,7 @@ type Storage interface {
 	AddShort(string, string, string) error
 	GetFullURL(string) (string, error)
 	AddCookie(string, []byte, []byte) error
-	GetId(string) ([][]byte, error)
+	GetID(string) ([][]byte, error)
 	GetAllShort(string) (URLUser, error)
 }
 
@@ -143,13 +143,11 @@ func (f InMemoryStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) e
 	f.dataCookie[idEncrypt] = [][]byte{key, nonce}
 	if len(f.dataCookie) == 0 {
 		log.Print("запись не удалась")
-	} else {
-		log.Print(f.dataCookie)
 	}
 	return nil
 }
 
-func (f FileStorage) GetId(idEncrypt string) ([][]byte, error) {
+func (f FileStorage) GetID(idEncrypt string) ([][]byte, error) {
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
 		return [][]byte{}, err
@@ -170,11 +168,10 @@ func (f FileStorage) GetId(idEncrypt string) ([][]byte, error) {
 	return [][]byte{}, errors.New("NO found cookie")
 }
 
-func (f InMemoryStorage) GetId(idEncrypt string) ([][]byte, error) {
+func (f InMemoryStorage) GetID(idEncrypt string) ([][]byte, error) {
 	log.Print("пытаемся получить ключ и вектор: " + idEncrypt)
-	log.Print(f.dataCookie)
 	if _, ok := f.dataCookie[idEncrypt]; !ok {
-		return [][]byte{}, errors.New("Кука не найдена")
+		return [][]byte{}, errors.New("cookie not found")
 	}
 	return f.dataCookie[idEncrypt], nil
 }
