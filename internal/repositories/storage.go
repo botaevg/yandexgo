@@ -21,8 +21,8 @@ type FileStorage struct {
 }
 
 type URLpair struct {
-	ShortURL string `json:"short_url"`
-	FullURL  string `json:"original_url"`
+	ShortURL string `json:"ShortURL"`
+	FullURL  string `json:"OriginalURL"`
 }
 
 type URLUser struct {
