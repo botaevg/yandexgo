@@ -51,3 +51,23 @@ func GzipHandle(next http.Handler) http.Handler {
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
 }
+
+func CheckCookie(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		/*
+			x, err := r.Cookie("id")
+			if err != nil {
+				log.Print("нет такого кука")
+				value := ""
+				http.SetCookie(w, &http.Cookie{
+					Name:  "id",
+					Value: value,
+				})
+			} else {
+
+				log.Print(x)
+			}*/
+		next.ServeHTTP(w, r)
+
+	})
+}

@@ -45,6 +45,7 @@ func (a App) Run() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleapp.GzipHandle)
+	r.Use(middleapp.CheckCookie)
 
 	var storage repositories.Storage
 	if a.config.FileStoragePath != "" {
@@ -54,6 +55,7 @@ func (a App) Run() {
 	}
 	h := handlers.New(a.config, storage)
 
+	r.Get("/api/user/urls", h.GetAllShortURL)
 	r.Post("/api/shorten", h.APIPost)
 	r.Get("/{id}", h.GetHandler)
 	r.Post("/", h.PostHandler)

@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
+	"github.com/botaevg/yandexgo/internal/cookies"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
 	"io"
+	"log"
 	"net/url"
 
 	"net/http"
@@ -30,19 +32,29 @@ type URL struct {
 	ShortURL string `json:"result"`
 }
 
-func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		x, er := r.Cookie("id")
-		if er != nil {
-			log.Print("нет такого кука")
-			http.SetCookie(w, &http.Cookie{
-				Name:  "id",
-				Value: "13",
-			})
-		} else {
+func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
+	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	log.Print(idUser)
 
-			log.Print(x)
-		}*/
+	var u repositories.URLUser
+
+	u, err := h.storage.GetAllShort(idUser)
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("Не найдено"))
+		return
+	}
+	b, err := json.Marshal(u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
+}
+
+func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
+	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	log.Print(idUser)
 
 	id := chi.URLParam(r, "id")
 
@@ -65,6 +77,8 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
+	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	log.Print(idUser)
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
@@ -81,7 +95,7 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs)
+	err = h.storage.AddShort(strURL, shortURLs, idUser)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -96,6 +110,8 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
+	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	log.Print(idUser)
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
@@ -118,7 +134,7 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs)
+	err = h.storage.AddShort(strURL, shortURLs, idUser)
 
 	if err != nil {
 

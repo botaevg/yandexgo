@@ -1,3 +1,7 @@
+GET http://localhost:8080/api/user/urls
+Accept: application/json
+
+###
 POST http://localhost:8080/api/shorten
 Content-Type: application/json
 

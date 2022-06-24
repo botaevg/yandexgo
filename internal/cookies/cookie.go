@@ -2,9 +2,13 @@ package cookies
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
-	"fmt"
+	"encoding/hex"
+	"github.com/botaevg/yandexgo/internal/repositories"
 	"log"
+	"net/http"
+	"strconv"
 )
 
 var ListKey map[string]string
@@ -19,42 +23,121 @@ func generateRandom(size int) ([]byte, error) {
 	return b, nil
 }
 
-func VerificationCookie(dst string) {
+var ID int = 0
 
-	k := ListKey[dst]
-	id := make([]byte, aes.BlockSize)
-	aesblock, err := aes.NewCipher([]byte(k))
+func CreateCookie(s repositories.Storage) (string, string) {
+	idStr := &ID
+	*idStr++
+	log.Print(*idStr)
+	id := []byte(strconv.Itoa(*idStr))
+	log.Print(id)
+
+	key, err := generateRandom(aes.BlockSize)
 	if err != nil {
 		log.Print(err)
-		return
+		log.Print("1")
+		return "", ""
 	}
-	aesblock.Decrypt(id, []byte(dst))
-	log.Println()
+	log.Print("2")
+	aesblock, err := aes.NewCipher(key)
+
+	aesgcm, err := cipher.NewGCM(aesblock)
+
+	nonce, err := generateRandom(aesgcm.NonceSize())
+	if err != nil {
+		return "", ""
+	}
+
+	dst := aesgcm.Seal(nil, nonce, id, nil)
+	//dst := make([]byte, aes.BlockSize)
+	log.Print("3")
+	log.Print(key)
+	log.Print(nonce)
+
+	//aesblock.Encrypt(dst, id)
+	log.Print("4")
+
+	//log.Print(dst)
+
+	s.AddCookie(hex.EncodeToString(dst), key, nonce)
+	log.Print("зашифрованный ид: ")
+	log.Print(dst)
+	log.Print("зашифрованный ид в виде строки: " + hex.EncodeToString(dst))
+
+	return hex.EncodeToString(dst), string(id)
 }
 
-func CookiesFunc() {
-	src := []byte("Ключ от сердца") // данные, которые хотим зашифровать
-	fmt.Printf("original: %s\n", src)
+func DecryptID(s repositories.Storage, dst string) (string, error) {
 
-	// константа aes.BlockSize определяет размер блока и равна 16 байтам
-	key, err := generateRandom(aes.BlockSize) // ключ шифрования
+	slId, err := s.GetId(dst)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
-		return
+		log.Print(err)
+		return "", err
+	}
+	aesblock, err := aes.NewCipher((slId[0]))
+	if err != nil {
+		log.Print(err)
+		return "", err
 	}
 
-	// получаем cipher.Block
-	aesblock, err := aes.NewCipher(key)
+	aesgcm, err := cipher.NewGCM(aesblock)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
-		return
+		log.Print(err)
+		return "", err
+	}
+	log.Print("11")
+	log.Print((slId[0]))
+	log.Print((slId[1]))
+
+	x, err := hex.DecodeString(dst)
+	log.Print("5")
+	log.Print(x)
+	if err != nil {
+		log.Print(err)
+		log.Print("6")
+		return "", err
+	}
+	id, err := aesgcm.Open(nil, (slId[1]), x, nil)
+	log.Print("12")
+	if err != nil {
+
+		log.Print(err)
+		log.Print(id)
+		log.Print("13")
+		return "", err
+	}
+	log.Print(string(id))
+	return string(id), nil //hex.EncodeToString(id)
+}
+
+func VerificationCookie(h repositories.Storage, r *http.Request, w *http.ResponseWriter) string {
+
+	x, err := r.Cookie("id_encrypt")
+	if err != nil {
+		log.Print("нет такого кука")
+		valueEncrypt, idUser := CreateCookie(h)
+		http.SetCookie(*w, &http.Cookie{
+			Name:  "id_encrypt",
+			Value: valueEncrypt,
+		})
+		return idUser
+	} else {
+		log.Print(x)
+		idUser, err := DecryptID(h, x.Value) //h.storage.GetId(x.Value)
+		if err != nil {
+			log.Print(err)
+			log.Print("такой кук не найден, создадим новый")
+			valueEncrypt, idUser := CreateCookie(h)
+			log.Print("новый кук: " + valueEncrypt)
+			http.SetCookie(*w, &http.Cookie{
+				Name:  "id_encrypt",
+				Value: valueEncrypt,
+			})
+			return idUser
+		} else {
+			log.Print("изначальный ИД: " + idUser)
+			return idUser
+		}
 	}
 
-	dst := make([]byte, aes.BlockSize) // зашифровываем
-	aesblock.Encrypt(dst, src)
-	fmt.Printf("encrypted: %x\n", dst)
-
-	src2 := make([]byte, aes.BlockSize) // расшифровываем
-	aesblock.Decrypt(src2, dst)
-	fmt.Printf("decrypted: %s\n", src2)
 }
