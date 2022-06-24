@@ -49,8 +49,10 @@ func (a App) Run() {
 
 	var storage repositories.Storage
 	if a.config.FileStoragePath != "" {
+		log.Print("репо файл")
 		storage = repositories.NewFileStorage(a.config.FileStoragePath)
 	} else {
+		log.Print("репо мапа")
 		storage = repositories.NewInMemoryStorage()
 	}
 	h := handlers.New(a.config, storage)

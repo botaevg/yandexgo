@@ -46,8 +46,10 @@ func (f InMemoryStorage) GetAllShort(idUser string) ([]URLpair, error) {
 		}
 	}
 	if len(urlUser) == 0 {
+		log.Print(urlUser)
 		return urlUser, errors.New("нет URL пользователя")
 	}
+	log.Print(urlUser)
 	return urlUser, nil
 }
 
@@ -56,6 +58,7 @@ func (f FileStorage) GetAllShort(idUser string) ([]URLpair, error) {
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
+		log.Print(urlUser)
 		return urlUser, errors.New("неоткрылся файл")
 	}
 
@@ -72,8 +75,10 @@ func (f FileStorage) GetAllShort(idUser string) ([]URLpair, error) {
 	}
 
 	if len(urlUser) == 0 {
+		log.Print(urlUser)
 		return urlUser, errors.New("нет URL пользователя")
 	}
+	log.Print(urlUser)
 	return urlUser, nil
 }
 
