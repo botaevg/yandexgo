@@ -6,9 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"github.com/botaevg/yandexgo/internal/repositories"
+	"github.com/botaevg/yandexgo/internal/shorten"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 var ListKey map[string]string
@@ -23,14 +23,11 @@ func generateRandom(size int) ([]byte, error) {
 	return b, nil
 }
 
-var ID int = 0
-
 func CreateCookie(s repositories.Storage) (string, string) {
-	idStr := &ID
-	*idStr++
+	idStr := shorten.GeneratorID()
 	log.Print("новый ид пользователя: ")
-	log.Print(*idStr)
-	id := []byte(strconv.Itoa(*idStr))
+	log.Print(idStr)
+	id := []byte(idStr)
 
 	key, err := generateRandom(aes.BlockSize)
 	if err != nil {
