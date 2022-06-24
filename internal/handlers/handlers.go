@@ -48,6 +48,8 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+	log.Print(b)
+	log.Print(string(b))
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
