@@ -85,7 +85,7 @@ func (f FileStorage) GetFullURL(id string) (string, error) {
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
-		if strings.HasPrefix(line, id) {
+		if strings.Contains(line, id) {
 			return strings.Join(strings.Split(line, ":")[2:], ":"), nil
 
 		}
