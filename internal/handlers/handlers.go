@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
@@ -10,12 +9,12 @@ import (
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v4"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"time"
-
-	"net/http"
 )
 
 type handler struct {
@@ -37,18 +36,19 @@ type URL struct {
 
 func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 	log.Print(h.config.DATABASEDSN)
-	db, err := sql.Open("pgx", h.config.DATABASEDSN)
+	db, err := pgx.Connect(context.Background(), h.config.DATABASEDSN)
+
 	if err != nil {
 		log.Print("DB error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer db.Close()
+	defer db.Close(context.Background())
 	// можем продиагностировать соединение
 
 	_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	if err = db.Ping(); err != nil {
+	if err = db.Ping(context.Background()); err != nil {
 		log.Print("ping error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
