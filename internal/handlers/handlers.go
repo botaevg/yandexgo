@@ -36,6 +36,7 @@ type URL struct {
 }
 
 func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
+	log.Print(h.config.DATABASEDSN)
 	db, err := sql.Open("pgx", h.config.DATABASEDSN)
 	if err != nil {
 		log.Print("DB error")
@@ -45,9 +46,10 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 	// можем продиагностировать соединение
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	if err = db.PingContext(ctx); err != nil {
+	if err = db.Ping(); err != nil {
+		log.Print("ping error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
