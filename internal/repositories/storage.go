@@ -25,10 +25,6 @@ type URLpair struct {
 	FullURL  string `json:"original_url"`
 }
 
-type URLUser struct {
-	AllURL []URLpair
-}
-
 type InMemoryStorage struct {
 	dataURL    map[string][]string
 	dataCookie map[string][][]byte

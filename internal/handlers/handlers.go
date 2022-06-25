@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
@@ -11,6 +13,7 @@ import (
 	"io"
 	"log"
 	"net/url"
+	"time"
 
 	"net/http"
 )
@@ -32,6 +35,25 @@ type URL struct {
 	ShortURL string `json:"result"`
 }
 
+func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("pgx", h.config.DATABASEDSN)
+	if err != nil {
+		log.Print("DB error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	// можем продиагностировать соединение
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	if err = db.PingContext(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("oki"))
+}
 func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 	log.Print(idUser)

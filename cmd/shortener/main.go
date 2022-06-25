@@ -8,6 +8,7 @@ import (
 	"github.com/botaevg/yandexgo/internal/middleapp"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/jackc/pgx"
 	"log"
 	"math/rand"
 	"net/http"
@@ -22,6 +23,7 @@ func main() {
 		return
 	}
 	//flag.Parse()
+
 	myApp := NewApp(appConfig)
 	myApp.Run()
 
@@ -59,6 +61,7 @@ func (a App) Run() {
 
 	r.Get("/api/user/urls", h.GetAllShortURL)
 	r.Post("/api/shorten", h.APIPost)
+	r.Get("/ping", h.CheckPing)
 	r.Get("/{id}", h.GetHandler)
 	r.Post("/", h.PostHandler)
 
