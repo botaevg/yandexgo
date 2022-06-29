@@ -204,7 +204,7 @@ func NewDB(pool *pgxpool.Pool) *DBStorage {
 	}
 }
 
-func (f DBStorage) AddShort(idEncrypt string, shortURL string, fullURL string) error {
+func (f DBStorage) AddShort(fullURL string, shortURL string, idEncrypt string) error {
 	q := `
 	INSERT INTO urls
 (idEncrypt, shortURL, fullURL)
