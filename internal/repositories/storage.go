@@ -223,7 +223,7 @@ VALUES
 
 func (f DBStorage) GetFullURL(shortURL string) (string, error) {
 	q := `
-	SELECT fullURL FROM urls WHERE shortURL = $1
+	SELECT idEncrypt, fullURL FROM urls WHERE shortURL = $1
 `
 	rows, err := f.db.Query(context.Background(), q, shortURL)
 	if err != nil {
@@ -231,9 +231,9 @@ func (f DBStorage) GetFullURL(shortURL string) (string, error) {
 	}
 	defer rows.Close()
 
-	var fullURL string
+	var id, fullURL string
 	for rows.Next() {
-		err = rows.Scan(&fullURL)
+		err = rows.Scan(&id, &fullURL)
 		if err != nil {
 			return "", err
 		}
