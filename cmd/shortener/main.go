@@ -70,7 +70,7 @@ func (a App) Run() {
 	h := handlers.New(a.config, storage)
 
 	r.Get("/api/user/urls", h.GetAllShortURL)
-	r.Post("/api/shorten/batch", h.ApiShortBatch)
+	r.Post("/api/shorten/batch", h.APIShortBatch)
 	r.Post("/api/shorten", h.APIPost)
 	r.Get("/ping", h.CheckPing)
 	r.Get("/{id}", h.GetHandler)
