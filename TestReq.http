@@ -8,7 +8,7 @@ Content-Type: application/json
 {"url":"http://vk1.com"}
 
 ###
-GET http://localhost:8080/fAGRw
+GET http://localhost:8080/OZFEX
 
 ###
 POST http://localhost:8080/

@@ -18,8 +18,10 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
 	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "base url")
 	flag.StringVar(&cfg.FileStoragePath, "f", "shortlist.txt", "file storage path")
-	flag.StringVar(&cfg.DATABASEDSN, "d", "postgresql://postgres:sqllife@localhost:5434/yandexgo", "data base dns")
+	flag.StringVar(&cfg.DATABASEDSN, "d", "", "data base dns")
+	//postgresql://postgres:sqllife@localhost:5434/yandexgo
 	//FILE_STORAGE_PATH=shortlist.txt
+	//DATABASE_DSN=postgresql://postgres:sqllife@localhost:5434/yandexgo
 	flag.Parse()
 	if err := env.Parse(&cfg); err != nil {
 		//fmt.Printf("%+v\n", err)
