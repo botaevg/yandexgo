@@ -234,6 +234,7 @@ func (f DBStorage) GetFullURL(shortURL string) (string, error) {
 	var id, fullURL string
 	for rows.Next() {
 		err = rows.Scan(&id, &fullURL)
+
 		if err != nil {
 			return "", err
 		}
@@ -245,6 +246,7 @@ func (f DBStorage) GetFullURL(shortURL string) (string, error) {
 
 	return fullURL, nil
 }
+
 func (f DBStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) error {
 	q := `
 	INSERT INTO cookies

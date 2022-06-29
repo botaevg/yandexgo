@@ -66,7 +66,7 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 
 	for _, value := range u {
 		shortURLs := shorten.ShortURL()
-		err = h.storage.AddShort(value.Origin, shortURLs, idUser)
+		err = h.storage.AddShort(idUser, shortURLs, value.Origin)
 		if err != nil {
 
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -166,7 +166,7 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs, idUser)
+	err = h.storage.AddShort(idUser, shortURLs, strURL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -205,7 +205,7 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs, idUser)
+	err = h.storage.AddShort(idUser, shortURLs, strURL)
 
 	if err != nil {
 
