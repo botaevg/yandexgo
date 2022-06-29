@@ -9,7 +9,6 @@ import (
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"io"
 	"log"
 	"net/http"
@@ -34,7 +33,7 @@ type URL struct {
 }
 
 func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
-	log.Print(h.config.DATABASEDSN)
+	/*log.Print(h.config.DATABASEDSN)
 	db, err := pgxpool.Connect(context.Background(), h.config.DATABASEDSN)
 
 	if err != nil {
@@ -42,12 +41,13 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer db.Close()
+	defer db.Close()*/
 	// можем продиагностировать соединение
 
 	//_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	//defer cancel()
-	if err = db.Ping(context.Background()); err != nil {
+
+	if err := h.storage.Ping(context.Background()); err != nil {
 		log.Print("ping error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

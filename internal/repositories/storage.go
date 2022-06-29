@@ -1,8 +1,10 @@
 package repositories
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
 	"os"
 	"strings"
@@ -14,6 +16,7 @@ type Storage interface {
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
 	GetAllShort(string) ([]URLpair, error)
+	Ping(ctx context.Context) error
 }
 
 type FileStorage struct {
@@ -23,6 +26,10 @@ type FileStorage struct {
 type URLpair struct {
 	ShortURL string `json:"short_url"`
 	FullURL  string `json:"original_url"`
+}
+
+type DBStorage struct {
+	db *pgxpool.Pool
 }
 
 type InMemoryStorage struct {
@@ -189,4 +196,149 @@ func NewInMemoryStorage() *InMemoryStorage {
 	IMS.dataCookie = make(map[string][][]byte)
 
 	return &IMS
+}
+
+func NewDB(pool *pgxpool.Pool) *DBStorage {
+	return &DBStorage{
+		db: pool,
+	}
+}
+
+func (f DBStorage) AddShort(idEncrypt string, shortURL string, fullURL string) error {
+	q := `
+	INSERT INTO urls
+(idEncrypt, shortURL, fullURL)
+VALUES 
+($1,$2,$3)
+`
+	_, err := f.db.Exec(context.Background(), q, idEncrypt, shortURL, fullURL)
+	if err != nil {
+		log.Print("Запись не создана")
+		log.Print(err)
+	} else {
+		log.Print("Запись создана")
+	}
+	return nil
+}
+
+func (f DBStorage) GetFullURL(shortURL string) (string, error) {
+	q := `
+	SELECT fullURL FROM urls WHERE shortURL = $1
+`
+	rows, err := f.db.Query(context.Background(), q, shortURL)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var fullURL string
+	for rows.Next() {
+		err = rows.Scan(&fullURL)
+		if err != nil {
+			return "", err
+		}
+	}
+	err = rows.Err()
+	if err != nil {
+		return "", err
+	}
+
+	return fullURL, nil
+}
+func (f DBStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) error {
+	q := `
+	INSERT INTO cookies
+(idEncrypt, key, nonce)
+VALUES 
+($1,$2,$3)
+`
+	_, err := f.db.Exec(context.Background(), q, idEncrypt, hex.EncodeToString(key), hex.EncodeToString(nonce))
+	if err != nil {
+		log.Print("Запись не создана")
+		log.Print(err)
+	} else {
+		log.Print("Запись создана")
+	}
+
+	return nil
+}
+func (f DBStorage) GetID(idEncrypt string) ([][]byte, error) {
+	q := `
+	SELECT key, nonce FROM cookies WHERE idEncrypt = $1
+`
+	rows, err := f.db.Query(context.Background(), q, idEncrypt)
+	if err != nil {
+		return [][]byte{}, err
+	}
+	defer rows.Close()
+
+	var key, nonce string
+	for rows.Next() {
+		err = rows.Scan(&key, &nonce)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// проверяем на ошибки
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	k, _ := hex.DecodeString(key)
+	n, _ := hex.DecodeString(nonce)
+	log.Print("ид найден")
+	return [][]byte{
+		k,
+		n,
+	}, nil
+}
+func (f DBStorage) GetAllShort(idEncrypt string) ([]URLpair, error) {
+	q := `
+	SELECT shortURL, fullURL FROM urls WHERE idEncrypt = $1
+`
+	rows, err := f.db.Query(context.Background(), q, idEncrypt)
+	if err != nil {
+		return []URLpair{}, err
+	}
+	defer rows.Close()
+
+	var urlUser []URLpair
+
+	for rows.Next() {
+		x := URLpair{}
+		err = rows.Scan(&x.ShortURL, &x.FullURL)
+		if err != nil {
+			return []URLpair{}, err
+		}
+
+		urlUser = append(urlUser, x)
+
+	}
+	err = rows.Err()
+	if err != nil {
+		return []URLpair{}, err
+	}
+
+	return urlUser, nil
+
+}
+
+func (f DBStorage) Ping(ctx context.Context) error {
+	if err := f.db.Ping(ctx); err != nil {
+		log.Print("ping error")
+		//http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	return nil
+}
+
+func (f InMemoryStorage) Ping(ctx context.Context) error {
+
+	return errors.New("repo map")
+}
+
+func (f FileStorage) Ping(ctx context.Context) error {
+
+	return errors.New("repo file")
 }
