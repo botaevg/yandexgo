@@ -65,8 +65,9 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	baseURL := h.config.BaseURL
 
 	for _, value := range u {
-		shortURLs := shorten.ShortURL()
-		err = h.storage.AddShort(value.Origin, shortURLs, idUser)
+		//shortURLs := shorten.ShortURL()
+		//err = h.storage.AddShort(value.Origin, shortURLs, idUser)
+		shortURLs, _, err := AddOrFindURL(h.storage, value.Origin, idUser)
 		if err != nil {
 
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -165,17 +166,20 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs, idUser)
-
+	//shortURLs := shorten.ShortURL()
+	//err = h.storage.AddShort(strURL, shortURLs, idUser)
+	shortURLs, newShort, err := AddOrFindURL(h.storage, strURL, idUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
-
-	w.WriteHeader(http.StatusCreated)
+	if newShort {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusConflict)
+	}
 	w.Write([]byte(baseURL + shortURLs))
 
 }
@@ -204,9 +208,9 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURLs := shorten.ShortURL()
-	err = h.storage.AddShort(strURL, shortURLs, idUser)
-
+	//shortURLs := shorten.ShortURL()
+	//err = h.storage.AddShort(strURL, shortURLs, idUser)
+	shortURLs, newShort, err := AddOrFindURL(h.storage, strURL, idUser)
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -216,6 +220,25 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	baseURL := h.config.BaseURL // os.LookupEnv("BASE_URL")
 
 	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	if newShort {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusConflict)
+	}
+
 	w.Write([]byte(`{"result":"` + baseURL + shortURLs + `"}`))
+}
+
+func AddOrFindURL(h repositories.Storage, strURL string, idUser string) (string, bool, error) {
+	newShort := true
+	shortURLs := shorten.ShortURL()
+	err := h.AddShort(strURL, shortURLs, idUser)
+	if err != nil {
+		shortURLs, err = h.FindShort(strURL)
+		newShort = false
+		if err != nil {
+			return "", true, err
+		}
+	}
+	return shortURLs, newShort, nil
 }

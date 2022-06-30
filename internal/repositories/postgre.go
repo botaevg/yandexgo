@@ -39,20 +39,15 @@ func NewClient(ctx context.Context, maxAttempts int, dsn string) (pool *pgxpool.
 		log.Print(err)
 	}
 
-	/*q2 := `
-		INSERT INTO cookies
-		    (name)
-		VALUES
-		       ($1) ;
-	`
-
-	_, err = pool.Query(context.Background(), q2, "botaev garik")
+	q = `CREATE UNIQUE INDEX urls_unique1
+  ON urls
+ USING btree(fullURL);
+`
+	_, err = pool.Exec(context.Background(), q)
 	if err != nil {
-		log.Print("Запись не создана")
+		log.Print("UNIQUE НЕ СОЗДАНА")
 		log.Print(err)
-	} else {
-		log.Print("Запись создана")
-	}*/
+	}
 
 	return pool, nil
 }

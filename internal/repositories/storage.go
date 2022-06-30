@@ -17,6 +17,7 @@ type Storage interface {
 	GetID(string) ([][]byte, error)
 	GetAllShort(string) ([]URLpair, error)
 	Ping(ctx context.Context) error
+	FindShort(string) (string, error)
 }
 
 type FileStorage struct {
@@ -210,15 +211,22 @@ func (f DBStorage) AddShort(fullURL string, shortURL string, idEncrypt string) e
 (idEncrypt, shortURL, fullURL)
 VALUES 
 ($1,$2,$3)
+ON CONFLICT (fullURL) DO NOTHING;
 `
-	_, err := f.db.Exec(context.Background(), q, idEncrypt, shortURL, fullURL)
+	x, err := f.db.Exec(context.Background(), q, idEncrypt, shortURL, fullURL)
 	if err != nil {
 		log.Print("Запись не создана")
 		log.Print(err)
 	} else {
+		log.Print(x.RowsAffected())
 		log.Print("Запись создана")
 	}
+	if x.RowsAffected() == 0 {
+		return errors.New("Запись не добавлена")
+	}
 	return nil
+	/*`INSERT INTO urls (idEncrypt, shortURL, fullURL) VALUES ($1,$2,$3)
+	ON CONFLICT (fullURL) DO NOTHING;`*/
 }
 
 func (f DBStorage) GetFullURL(shortURL string) (string, error) {
@@ -343,4 +351,38 @@ func (f InMemoryStorage) Ping(ctx context.Context) error {
 func (f FileStorage) Ping(ctx context.Context) error {
 
 	return errors.New("repo file")
+}
+
+func (f InMemoryStorage) FindShort(s string) (string, error) {
+	return "", errors.New("repo map")
+}
+
+func (f FileStorage) FindShort(s string) (string, error) {
+	return "", errors.New("repo file")
+}
+
+func (f DBStorage) FindShort(s string) (string, error) {
+	q := `
+	SELECT shortURL FROM urls WHERE fullURL = $1
+`
+	rows, err := f.db.Query(context.Background(), q, s)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var short string
+	for rows.Next() {
+		err = rows.Scan(&short)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// проверяем на ошибки
+	err = rows.Err()
+	if err != nil {
+		return "", err
+	}
+	return short, nil
 }
