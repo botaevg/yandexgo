@@ -222,7 +222,7 @@ ON CONFLICT (fullURL) DO NOTHING;
 		log.Print("Запись создана")
 	}
 	if x.RowsAffected() == 0 {
-		return errors.New("Запись не добавлена")
+		return errors.New("запись не добавлена")
 	}
 	return nil
 	/*`INSERT INTO urls (idEncrypt, shortURL, fullURL) VALUES ($1,$2,$3)
