@@ -32,16 +32,6 @@ type URL struct {
 	ShortURL string `json:"result"`
 }
 
-type APIOriginBatch struct {
-	ID     string `json:"correlation_id"`
-	Origin string `json:"original_url"`
-}
-
-type APIShortBatch struct {
-	ID       string `json:"correlation_id"`
-	ShortURL string `json:"short_url"`
-}
-
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 
@@ -52,7 +42,7 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var u []APIOriginBatch
+	var u []repositories.APIOriginBatch
 	if err := json.Unmarshal(b, &u); err != nil {
 		log.Print("Unmarshal error")
 		log.Print(err)
@@ -60,23 +50,30 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var x []APIShortBatch
+	var x []repositories.APIShortBatch
 
 	baseURL := h.config.BaseURL
 
-	for _, value := range u {
-		//shortURLs := shorten.ShortURL()
-		//err = h.storage.AddShort(value.Origin, shortURLs, idUser)
-		shortURLs, _, err := AddOrFindURL(h.storage, value.Origin, idUser)
-		if err != nil {
+	/*
+		for _, value := range u {
 
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		x = append(x, APIShortBatch{
-			ID:       value.ID,
-			ShortURL: baseURL + shortURLs,
-		})
+			//shortURLs := shorten.ShortURL()
+			//err = h.storage.AddShort(value.Origin, shortURLs, idUser)
+			shortURLs, _, err := AddOrFindURL(h.storage, value.Origin, idUser)
+			if err != nil {
+
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			x = append(x, APIShortBatch{
+				ID:       value.ID,
+				ShortURL: baseURL + shortURLs,
+			})
+		}*/
+	x, err = h.storage.AddShortBatch(u, baseURL, idUser)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	b, err = json.Marshal(x)
