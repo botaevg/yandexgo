@@ -231,7 +231,7 @@ VALUES
 		q := `
 		SELECT shortURL FROM urls WHERE fullURL = $1
 		`
-		rows, err := f.db.Query(context.Background(), q, shortURL)
+		rows, err := f.db.Query(context.Background(), q, fullURL)
 		if err != nil {
 			return "", err
 		}

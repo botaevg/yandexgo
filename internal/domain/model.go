@@ -11,7 +11,7 @@ type APIShortBatch struct {
 }
 
 type URL struct {
-	IdUser   string
+	IDUser   string
 	ShortURL string
 	FullURL  string
 }
