@@ -57,6 +57,7 @@ func (a App) Run() {
 		postgreSQLClient, err := repositories.NewClient(context.TODO(), 3, a.config.DATABASEDSN)
 		if err != nil {
 			log.Print("clien postgres fail")
+			return
 		}
 		storage = repositories.NewDB(postgreSQLClient)
 

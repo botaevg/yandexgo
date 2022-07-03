@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/cookies"
+	"github.com/botaevg/yandexgo/internal/domain"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
@@ -42,41 +43,25 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var u []repositories.APIOriginBatch
-	if err := json.Unmarshal(b, &u); err != nil {
+	var originBatch []domain.APIOriginBatch
+	if err := json.Unmarshal(b, &originBatch); err != nil {
 		log.Print("Unmarshal error")
 		log.Print(err)
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
 
-	var x []repositories.APIShortBatch
+	var shortBatch []domain.APIShortBatch
 
 	baseURL := h.config.BaseURL
 
-	/*
-		for _, value := range u {
-
-			//shortURLs := shorten.ShortURL()
-			//err = h.storage.AddShort(value.Origin, shortURLs, idUser)
-			shortURLs, _, err := AddOrFindURL(h.storage, value.Origin, idUser)
-			if err != nil {
-
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			x = append(x, APIShortBatch{
-				ID:       value.ID,
-				ShortURL: baseURL + shortURLs,
-			})
-		}*/
-	x, err = h.storage.AddShortBatch(u, baseURL, idUser)
+	shortBatch, err = h.storage.AddShortBatch(originBatch, baseURL, idUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	b, err = json.Marshal(x)
+	b, err = json.Marshal(shortBatch)
 	if err != nil {
 		log.Print("Marshal error")
 		log.Print(err)
@@ -229,13 +214,14 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 func AddOrFindURL(h repositories.Storage, strURL string, idUser string) (string, bool, error) {
 	newShort := true
 	shortURLs := shorten.ShortURL()
-	err := h.AddShort(strURL, shortURLs, idUser)
+	shortURLsAfter, err := h.AddShort(strURL, shortURLs, idUser)
 	if err != nil {
-		shortURLs, err = h.FindShort(strURL)
+		return "", true, err
+
+	}
+	if shortURLs != shortURLsAfter {
+		shortURLs = shortURLsAfter
 		newShort = false
-		if err != nil {
-			return "", true, err
-		}
 	}
 	return shortURLs, newShort, nil
 }

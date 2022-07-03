@@ -11,8 +11,6 @@ import (
 	"net/http"
 )
 
-var ListKey map[string]string
-
 func generateRandom(size int) ([]byte, error) {
 	b := make([]byte, size)
 	_, err := rand.Read(b)
@@ -52,8 +50,7 @@ func CreateCookie(s repositories.Storage) (string, string) {
 	dst := aesgcm.Seal(nil, nonce, id, nil)
 
 	s.AddCookie(hex.EncodeToString(dst), key, nonce)
-	log.Print("зашифрованный ид в виде строки: " + hex.EncodeToString(dst))
-
+	
 	return hex.EncodeToString(dst), string(id)
 }
 

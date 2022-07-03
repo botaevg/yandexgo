@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"github.com/botaevg/yandexgo/internal/domain"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
@@ -12,14 +13,14 @@ import (
 )
 
 type Storage interface {
-	AddShort(string, string, string) error
+	AddShort(string, string, string) (string, error)
 	GetFullURL(string) (string, error)
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
 	GetAllShort(string) ([]URLpair, error)
 	Ping(ctx context.Context) error
-	FindShort(string) (string, error)
-	AddShortBatch([]APIOriginBatch, string, string) ([]APIShortBatch, error)
+	//FindShort(string) (string, error)
+	AddShortBatch([]domain.APIOriginBatch, string, string) ([]domain.APIShortBatch, error)
 }
 
 type FileStorage struct {
@@ -38,16 +39,6 @@ type DBStorage struct {
 type InMemoryStorage struct {
 	dataURL    map[string][]string
 	dataCookie map[string][][]byte
-}
-
-type APIOriginBatch struct {
-	ID     string `json:"correlation_id"`
-	Origin string `json:"original_url"`
-}
-
-type APIShortBatch struct {
-	ID       string `json:"correlation_id"`
-	ShortURL string `json:"short_url"`
 }
 
 func (f InMemoryStorage) GetAllShort(idUser string) ([]URLpair, error) {
@@ -125,24 +116,24 @@ func (f InMemoryStorage) GetFullURL(id string) (string, error) {
 	return f.dataURL[id][0], nil
 }
 
-func (f FileStorage) AddShort(body string, s string, idUser string) error {
+func (f FileStorage) AddShort(body string, s string, idUser string) (string, error) {
 	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
 	_, err = file.WriteString(idUser + ":" + s + ":" + body + "\n")
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return s, nil
 }
 
-func (f InMemoryStorage) AddShort(body string, s string, idUser string) error {
+func (f InMemoryStorage) AddShort(body string, s string, idUser string) (string, error) {
 	f.dataURL[s] = []string{body, idUser}
-	return nil
+	return s, nil
 }
 
 func (f FileStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) error {
@@ -177,8 +168,14 @@ func (f FileStorage) GetID(idEncrypt string) ([][]byte, error) {
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, idEncrypt) {
 			key, nonce := strings.Split(line, ":::")[1], strings.Split(line, ":::")[2]
-			k, _ := hex.DecodeString(key)
-			n, _ := hex.DecodeString(nonce)
+			k, err := hex.DecodeString(key)
+			if err != nil {
+				return [][]byte{}, err
+			}
+			n, err := hex.DecodeString(nonce)
+			if err != nil {
+				return [][]byte{}, err
+			}
 			return [][]byte{
 				k,
 				n,
@@ -217,7 +214,7 @@ func NewDB(pool *pgxpool.Pool) *DBStorage {
 	}
 }
 
-func (f DBStorage) AddShort(fullURL string, shortURL string, idEncrypt string) error {
+func (f DBStorage) AddShort(fullURL string, shortURL string, idEncrypt string) (string, error) {
 	q := `
 	INSERT INTO urls
 (idEncrypt, shortURL, fullURL)
@@ -230,27 +227,82 @@ VALUES
 	if err != nil {
 		log.Print("Запись не создана")
 		log.Print(err)
-		return errors.New("запись не добавлена")
+		//return errors.New("запись не добавлена")
+		q := `
+		SELECT shortURL FROM urls WHERE fullURL = $1
+		`
+		rows, err := f.db.Query(context.Background(), q, shortURL)
+		if err != nil {
+			return "", err
+		}
+		defer rows.Close()
+
+		var short string
+		for rows.Next() {
+			err = rows.Scan(&short)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		// проверяем на ошибки
+		err = rows.Err()
+		if err != nil {
+			return "", err
+		}
+		return short, nil
 	} else {
 		log.Print("Запись создана")
 	}
-	return nil
+	return shortURL, nil
 
 }
 
-func (f InMemoryStorage) AddShortBatch(origins []APIOriginBatch, baseURL string, idEncrypt string) ([]APIShortBatch, error) {
-	return []APIShortBatch{}, nil
+func (f InMemoryStorage) AddShortBatch(origins []domain.APIOriginBatch, baseURL string, idEncrypt string) ([]domain.APIShortBatch, error) {
+	var shortBatch []domain.APIShortBatch
+	for _, v := range origins {
+		shortURLs := shorten.ShortURL()
+		f.dataURL[shortURLs] = []string{v.Origin, idEncrypt}
+		shortBatch = append(shortBatch, domain.APIShortBatch{
+			ID:       v.ID,
+			ShortURL: baseURL + shortURLs,
+		})
+	}
+
+	return shortBatch, nil
 }
 
-func (f FileStorage) AddShortBatch(origins []APIOriginBatch, baseURL string, idEncrypt string) ([]APIShortBatch, error) {
-	return []APIShortBatch{}, nil
+func (f FileStorage) AddShortBatch(origins []domain.APIOriginBatch, baseURL string, idEncrypt string) ([]domain.APIShortBatch, error) {
+	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+
+	if err != nil {
+		return []domain.APIShortBatch{}, nil
+	}
+	defer file.Close()
+
+	var shortBatch []domain.APIShortBatch
+
+	for _, v := range origins {
+		shortURLs := shorten.ShortURL()
+		_, err = file.WriteString(idEncrypt + ":" + shortURLs + ":" + v.Origin + "\n")
+		if err != nil {
+			return []domain.APIShortBatch{}, nil
+		}
+		shortBatch = append(shortBatch, domain.APIShortBatch{
+			ID:       v.ID,
+			ShortURL: baseURL + shortURLs,
+		})
+	}
+
+	return shortBatch, nil
+
 }
 
-func (f DBStorage) AddShortBatch(origins []APIOriginBatch, baseURL string, idEncrypt string) ([]APIShortBatch, error) {
+func (f DBStorage) AddShortBatch(origins []domain.APIOriginBatch, baseURL string, idEncrypt string) ([]domain.APIShortBatch, error) {
 	// шаг 1 — объявляем транзакцию
 	tx, err := f.db.Begin(context.Background())
 	if err != nil {
-		return []APIShortBatch{}, err
+		return []domain.APIShortBatch{}, err
 	}
 	// шаг 1.1 — если возникает ошибка, откатываем изменения
 	defer tx.Rollback(context.Background())
@@ -263,28 +315,21 @@ VALUES
 ;
 `
 
-	/*// шаг 2 — готовим инструкцию
-	stmt, err := tx.Exec(context.Background(), "INSERT INTO videos(title, description, views, likes) VALUES(?,?,?,?)")
-	if err != nil {
-		return err
-	}
-	// шаг 2.1 — не забываем закрыть инструкцию, когда она больше не нужна
-	defer stmt.Close()*/
-	var x []APIShortBatch
+	var shortBatch []domain.APIShortBatch
 
 	for _, v := range origins {
 		// шаг 3 — указываем, что каждое видео будет добавлено в транзакцию
 		shortURLs := shorten.ShortURL()
-		if _, err = tx.Exec(context.Background(), q, v.ID, shortURLs, v.Origin); err != nil {
-			return []APIShortBatch{}, err
+		if _, err = tx.Exec(context.Background(), q, idEncrypt, shortURLs, v.Origin); err != nil {
+			return []domain.APIShortBatch{}, err
 		}
-		x = append(x, APIShortBatch{
+		shortBatch = append(shortBatch, domain.APIShortBatch{
 			ID:       v.ID,
 			ShortURL: baseURL + shortURLs,
 		})
 	}
 	// шаг 4 — сохраняем изменения
-	return x, tx.Commit(context.Background())
+	return shortBatch, tx.Commit(context.Background())
 	///////////////
 
 }
@@ -355,8 +400,14 @@ func (f DBStorage) GetID(idEncrypt string) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	k, _ := hex.DecodeString(key)
-	n, _ := hex.DecodeString(nonce)
+	k, err := hex.DecodeString(key)
+	if err != nil {
+		return [][]byte{}, err
+	}
+	n, err := hex.DecodeString(nonce)
+	if err != nil {
+		return [][]byte{}, err
+	}
 	log.Print("ид найден")
 	return [][]byte{
 		k,
@@ -413,6 +464,7 @@ func (f FileStorage) Ping(ctx context.Context) error {
 	return errors.New("repo file")
 }
 
+/*
 func (f InMemoryStorage) FindShort(s string) (string, error) {
 	return "", errors.New("repo map")
 }
@@ -446,3 +498,4 @@ func (f DBStorage) FindShort(s string) (string, error) {
 	}
 	return short, nil
 }
+*/
