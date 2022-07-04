@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -163,17 +162,9 @@ func TestGetHandler(t *testing.T) {
 			assert.Equal(t, tt.want.code, resGet.StatusCode)
 
 			assert.Equal(t, tt.want.location, resGet.Header.Get("Location"))
-			log.Print(resGet.Header.Get("Location"))
-			log.Print(tt.want.location)
-			/*resGetBody, err := ioutil.ReadAll(resGet.Body)
-			require.NoError(t, err)
-			err = resGet.Body.Close()
-			require.NoError(t, err)
+			t.Log(resGet.Header.Get("Location"))
+			t.Log(tt.want.location)
 
-			//resGet.Location()
-
-			assert.Equal(t, tt.want.location, string(resGetBody))
-			*/
 		})
 	}
 }

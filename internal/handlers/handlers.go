@@ -51,14 +51,30 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var URLForAddStorage []domain.URLForAddStorage
+	for _, v := range originBatch {
+		URLForAddStorage = append(URLForAddStorage, domain.URLForAddStorage{
+			FullURL:       v.Origin,
+			CorrelationID: v.ID,
+			IDUser:        idUser,
+			ShortURL:      shorten.ShortURL(),
+		})
+	}
 	var shortBatch []domain.APIShortBatch
 
-	baseURL := h.config.BaseURL
-
-	shortBatch, err = h.storage.AddShortBatch(originBatch, baseURL, idUser)
+	err = h.storage.AddShortBatch(URLForAddStorage)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	/*for i := range shortBatch {
+		shortBatch[i].ShortURL = h.config.BaseURL + shortBatch[i].ShortURL
+	}*/
+	for _, v := range URLForAddStorage {
+		shortBatch = append(shortBatch, domain.APIShortBatch{
+			ID:       v.CorrelationID,
+			ShortURL: h.config.BaseURL + v.ShortURL,
+		})
 	}
 
 	b, err = json.Marshal(shortBatch)
@@ -87,12 +103,12 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 	log.Print(idUser)
 
-	//var allShortURL *[]repositories.URLpair
+	var allShortURL []domain.URLpair
 
 	allShortURL, err := h.storage.GetAllShort(idUser)
-	for i, _ := range allShortURL {
+	for i := range allShortURL {
 		log.Print(allShortURL[i].ShortURL)
-		allShortURL[i].ShortURL = "http://localhost:8080/" + allShortURL[i].ShortURL
+		allShortURL[i].ShortURL = h.config.BaseURL + allShortURL[i].ShortURL
 		log.Print(allShortURL[i].ShortURL)
 	}
 	log.Print(allShortURL)

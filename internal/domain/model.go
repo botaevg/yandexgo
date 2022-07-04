@@ -11,7 +11,13 @@ type APIShortBatch struct {
 }
 
 type URLForAddStorage struct {
-	IDUser   string
-	ShortURL string
-	FullURL  string
+	IDUser        string
+	ShortURL      string
+	FullURL       string
+	CorrelationID string
+}
+
+type URLpair struct {
+	ShortURL string `json:"short_url"`
+	FullURL  string `json:"original_url"`
 }
