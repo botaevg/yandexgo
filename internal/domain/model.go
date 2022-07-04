@@ -17,6 +17,11 @@ type URLForAddStorage struct {
 	CorrelationID string
 }
 
+type URLForGetAll struct {
+	ShortURL string
+	FullURL  string
+}
+
 type URLpair struct {
 	ShortURL string `json:"short_url"`
 	FullURL  string `json:"original_url"`

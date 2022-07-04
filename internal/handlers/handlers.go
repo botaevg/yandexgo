@@ -103,15 +103,16 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 	log.Print(idUser)
 
-	var allShortURL []domain.URLpair
+	URLForGetAll, err := h.storage.GetAllShort(idUser)
 
-	allShortURL, err := h.storage.GetAllShort(idUser)
-	for i := range allShortURL {
-		log.Print(allShortURL[i].ShortURL)
-		allShortURL[i].ShortURL = h.config.BaseURL + allShortURL[i].ShortURL
-		log.Print(allShortURL[i].ShortURL)
+	var allShortURL []domain.URLpair
+	for _, v := range URLForGetAll {
+		allShortURL = append(allShortURL, domain.URLpair{
+			FullURL:  v.FullURL,
+			ShortURL: h.config.BaseURL + v.ShortURL,
+		})
 	}
-	log.Print(allShortURL)
+
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("Не найдено"))

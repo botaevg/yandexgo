@@ -17,7 +17,7 @@ type Storage interface {
 	GetFullURL(string) (string, error)
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
-	GetAllShort(string) ([]domain.URLpair, error)
+	GetAllShort(string) ([]domain.URLForGetAll, error)
 	Ping(ctx context.Context) error
 	AddShortBatch([]domain.URLForAddStorage) error
 }
@@ -35,11 +35,11 @@ type InMemoryStorage struct {
 	dataCookie map[string][][]byte
 }
 
-func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLpair, error) {
-	var urlUser []domain.URLpair
+func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
+	var urlUser []domain.URLForGetAll
 	for key, value := range f.dataURL {
 		if value[1] == idUser {
-			x := domain.URLpair{
+			x := domain.URLForGetAll{
 				FullURL:  value[0],
 				ShortURL: key,
 			}
@@ -54,8 +54,8 @@ func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLpair, error) {
 	return urlUser, nil
 }
 
-func (f FileStorage) GetAllShort(idUser string) ([]domain.URLpair, error) {
-	var urlUser []domain.URLpair
+func (f FileStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
+	var urlUser []domain.URLForGetAll
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
@@ -67,7 +67,7 @@ func (f FileStorage) GetAllShort(idUser string) ([]domain.URLpair, error) {
 		if strings.HasPrefix(line, idUser) {
 			short := strings.Split(line, ":")[1]
 			full := strings.Join(strings.Split(line, ":")[2:], ":")
-			x := domain.URLpair{
+			x := domain.URLForGetAll{
 				FullURL:  full,
 				ShortURL: short,
 			}
@@ -83,23 +83,23 @@ func (f FileStorage) GetAllShort(idUser string) ([]domain.URLpair, error) {
 	return urlUser, nil
 }
 
-func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLpair, error) {
+func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLForGetAll, error) {
 	q := `
 	SELECT shortURL, fullURL FROM urls WHERE idEncrypt = $1
 `
 	rows, err := f.db.Query(context.Background(), q, idEncrypt)
 	if err != nil {
-		return []domain.URLpair{}, err
+		return []domain.URLForGetAll{}, err
 	}
 	defer rows.Close()
 
-	var urlUser []domain.URLpair
+	var urlUser []domain.URLForGetAll
 
 	for rows.Next() {
-		x := domain.URLpair{}
+		x := domain.URLForGetAll{}
 		err = rows.Scan(&x.ShortURL, &x.FullURL)
 		if err != nil {
-			return []domain.URLpair{}, err
+			return []domain.URLForGetAll{}, err
 		}
 
 		urlUser = append(urlUser, x)
@@ -107,7 +107,7 @@ func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLpair, error) {
 	}
 	err = rows.Err()
 	if err != nil {
-		return []domain.URLpair{}, err
+		return []domain.URLForGetAll{}, err
 	}
 
 	return urlUser, nil
