@@ -4,15 +4,14 @@ import (
 	"context"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
-	"time"
 )
 
 func NewClient(ctx context.Context, maxAttempts int, dsn string) (pool *pgxpool.Pool, err error) {
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	//ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	//defer cancel()
 
-	pool, err = pgxpool.Connect(ctx, dsn)
+	pool, err = pgxpool.Connect(context.Background(), dsn)
 
 	if err != nil {
 		log.Print("error do with tries postgresql")

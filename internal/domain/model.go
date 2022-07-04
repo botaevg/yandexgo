@@ -10,7 +10,7 @@ type APIShortBatch struct {
 	ShortURL string `json:"short_url"`
 }
 
-type URL struct {
+type URLForAddStorage struct {
 	IDUser   string
 	ShortURL string
 	FullURL  string

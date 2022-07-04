@@ -87,15 +87,21 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 	log.Print(idUser)
 
-	var u []repositories.URLpair
+	//var allShortURL *[]repositories.URLpair
 
-	u, err := h.storage.GetAllShort(idUser)
+	allShortURL, err := h.storage.GetAllShort(idUser)
+	for i, _ := range allShortURL {
+		log.Print(allShortURL[i].ShortURL)
+		allShortURL[i].ShortURL = "http://localhost:8080/" + allShortURL[i].ShortURL
+		log.Print(allShortURL[i].ShortURL)
+	}
+	log.Print(allShortURL)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("Не найдено"))
 		return
 	}
-	b, err := json.Marshal(u)
+	b, err := json.Marshal(allShortURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -214,7 +220,11 @@ func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 func AddOrFindURL(h repositories.Storage, strURL string, idUser string) (string, bool, error) {
 	newShort := true
 	shortURLs := shorten.ShortURL()
-	shortURLsAfter, err := h.AddShort(strURL, shortURLs, idUser)
+	shortURLsAfter, err := h.AddShort(domain.URLForAddStorage{
+		FullURL:  strURL,
+		ShortURL: shortURLs,
+		IDUser:   idUser,
+	})
 	if err != nil {
 		return "", true, err
 

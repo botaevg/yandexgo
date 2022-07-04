@@ -13,13 +13,12 @@ import (
 )
 
 type Storage interface {
-	AddShort(string, string, string) (string, error)
+	AddShort(domain.URLForAddStorage) (string, error)
 	GetFullURL(string) (string, error)
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
 	GetAllShort(string) ([]URLpair, error)
 	Ping(ctx context.Context) error
-	//FindShort(string) (string, error)
 	AddShortBatch([]domain.APIOriginBatch, string, string) ([]domain.APIShortBatch, error)
 }
 
@@ -47,7 +46,7 @@ func (f InMemoryStorage) GetAllShort(idUser string) ([]URLpair, error) {
 		if value[1] == idUser {
 			x := URLpair{
 				FullURL:  value[0],
-				ShortURL: "http://localhost:8080/" + key,
+				ShortURL: key,
 			}
 			urlUser = append(urlUser, x)
 		}
@@ -75,7 +74,7 @@ func (f FileStorage) GetAllShort(idUser string) ([]URLpair, error) {
 			full := strings.Join(strings.Split(line, ":")[2:], ":")
 			x := URLpair{
 				FullURL:  full,
-				ShortURL: "http://localhost:8080/" + short,
+				ShortURL: short,
 			}
 			urlUser = append(urlUser, x)
 		}
@@ -87,6 +86,37 @@ func (f FileStorage) GetAllShort(idUser string) ([]URLpair, error) {
 	}
 	log.Print(urlUser)
 	return urlUser, nil
+}
+
+func (f DBStorage) GetAllShort(idEncrypt string) ([]URLpair, error) {
+	q := `
+	SELECT shortURL, fullURL FROM urls WHERE idEncrypt = $1
+`
+	rows, err := f.db.Query(context.Background(), q, idEncrypt)
+	if err != nil {
+		return []URLpair{}, err
+	}
+	defer rows.Close()
+
+	var urlUser []URLpair
+
+	for rows.Next() {
+		x := URLpair{}
+		err = rows.Scan(&x.ShortURL, &x.FullURL)
+		if err != nil {
+			return []URLpair{}, err
+		}
+
+		urlUser = append(urlUser, x)
+
+	}
+	err = rows.Err()
+	if err != nil {
+		return []URLpair{}, err
+	}
+
+	return urlUser, nil
+
 }
 
 func (f FileStorage) GetFullURL(id string) (string, error) {
@@ -116,7 +146,7 @@ func (f InMemoryStorage) GetFullURL(id string) (string, error) {
 	return f.dataURL[id][0], nil
 }
 
-func (f FileStorage) AddShort(body string, s string, idUser string) (string, error) {
+func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 	file, err := os.OpenFile(f.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 
 	if err != nil {
@@ -124,16 +154,16 @@ func (f FileStorage) AddShort(body string, s string, idUser string) (string, err
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(idUser + ":" + s + ":" + body + "\n")
+	_, err = file.WriteString(item.IDUser + ":" + item.ShortURL + ":" + item.FullURL + "\n")
 	if err != nil {
 		return "", err
 	}
-	return s, nil
+	return item.ShortURL, nil
 }
 
-func (f InMemoryStorage) AddShort(body string, s string, idUser string) (string, error) {
-	f.dataURL[s] = []string{body, idUser}
-	return s, nil
+func (f InMemoryStorage) AddShort(item domain.URLForAddStorage) (string, error) {
+	f.dataURL[item.ShortURL] = []string{item.FullURL, item.IDUser}
+	return item.ShortURL, nil
 }
 
 func (f FileStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) error {
@@ -214,7 +244,7 @@ func NewDB(pool *pgxpool.Pool) *DBStorage {
 	}
 }
 
-func (f DBStorage) AddShort(fullURL string, shortURL string, idEncrypt string) (string, error) {
+func (f DBStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 	q := `
 	INSERT INTO urls
 (idEncrypt, shortURL, fullURL)
@@ -223,7 +253,7 @@ VALUES
 ;
 `
 	//ON CONFLICT (fullURL) DO NOTHING
-	_, err := f.db.Exec(context.Background(), q, idEncrypt, shortURL, fullURL)
+	_, err := f.db.Exec(context.Background(), q, item.IDUser, item.ShortURL, item.FullURL)
 	if err != nil {
 		log.Print("Запись не создана")
 		log.Print(err)
@@ -231,7 +261,7 @@ VALUES
 		q := `
 		SELECT shortURL FROM urls WHERE fullURL = $1
 		`
-		rows, err := f.db.Query(context.Background(), q, fullURL)
+		rows, err := f.db.Query(context.Background(), q, item.FullURL)
 		if err != nil {
 			return "", err
 		}
@@ -254,7 +284,7 @@ VALUES
 	} else {
 		log.Print("Запись создана")
 	}
-	return shortURL, nil
+	return item.ShortURL, nil
 
 }
 
@@ -414,41 +444,10 @@ func (f DBStorage) GetID(idEncrypt string) ([][]byte, error) {
 		n,
 	}, nil
 }
-func (f DBStorage) GetAllShort(idEncrypt string) ([]URLpair, error) {
-	q := `
-	SELECT shortURL, fullURL FROM urls WHERE idEncrypt = $1
-`
-	rows, err := f.db.Query(context.Background(), q, idEncrypt)
-	if err != nil {
-		return []URLpair{}, err
-	}
-	defer rows.Close()
-
-	var urlUser []URLpair
-
-	for rows.Next() {
-		x := URLpair{}
-		err = rows.Scan(&x.ShortURL, &x.FullURL)
-		if err != nil {
-			return []URLpair{}, err
-		}
-
-		urlUser = append(urlUser, x)
-
-	}
-	err = rows.Err()
-	if err != nil {
-		return []URLpair{}, err
-	}
-
-	return urlUser, nil
-
-}
 
 func (f DBStorage) Ping(ctx context.Context) error {
 	if err := f.db.Ping(ctx); err != nil {
 		log.Print("ping error")
-		//http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 	return nil
@@ -463,39 +462,3 @@ func (f FileStorage) Ping(ctx context.Context) error {
 
 	return errors.New("repo file")
 }
-
-/*
-func (f InMemoryStorage) FindShort(s string) (string, error) {
-	return "", errors.New("repo map")
-}
-
-func (f FileStorage) FindShort(s string) (string, error) {
-	return "", errors.New("repo file")
-}
-
-func (f DBStorage) FindShort(s string) (string, error) {
-	q := `
-	SELECT shortURL FROM urls WHERE fullURL = $1
-`
-	rows, err := f.db.Query(context.Background(), q, s)
-	if err != nil {
-		return "", err
-	}
-	defer rows.Close()
-
-	var short string
-	for rows.Next() {
-		err = rows.Scan(&short)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// проверяем на ошибки
-	err = rows.Err()
-	if err != nil {
-		return "", err
-	}
-	return short, nil
-}
-*/
