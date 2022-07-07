@@ -71,6 +71,7 @@ func (a App) Run() {
 	h := handlers.New(a.config, storage)
 
 	r.Get("/api/user/urls", h.GetAllShortURL)
+	r.Delete("/api/user/urls", h.APIDelete)
 	r.Post("/api/shorten/batch", h.APIShortBatch)
 	r.Post("/api/shorten", h.APIPost)
 	r.Get("/ping", h.CheckPing)

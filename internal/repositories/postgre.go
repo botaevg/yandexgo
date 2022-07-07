@@ -30,7 +30,8 @@ func NewClient(ctx context.Context, maxAttempts int, dsn string) (pool *pgxpool.
 	q = `CREATE TABLE urls(
     idEncrypt VARCHAR(100),
 	shortURL VARCHAR(100),
-	fullURL VARCHAR(100)
+	fullURL VARCHAR(100),
+	deleted BOOLEAN
 );`
 	_, err = pool.Exec(context.Background(), q)
 	if err != nil {

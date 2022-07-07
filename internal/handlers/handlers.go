@@ -33,6 +33,26 @@ type URL struct {
 	ShortURL string `json:"result"`
 }
 
+func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
+	// update urls set deleted = 100 where shortURL = []shorts
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var shorts []string
+	if err := json.Unmarshal(b, &shorts); err != nil {
+		log.Print("Unmarshal error")
+		log.Print(err)
+		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
+		return
+	}
+	log.Print(shorts)
+	w.Write([]byte("oke"))
+}
+
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	idUser := cookies.VerificationCookie(h.storage, r, &w)
 
