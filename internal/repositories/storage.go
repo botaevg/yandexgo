@@ -277,9 +277,9 @@ func NewDB(pool *pgxpool.Pool) *DBStorage {
 func (f DBStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 	q := `
 	INSERT INTO urls
-(idEncrypt, shortURL, fullURL)
+(idEncrypt, shortURL, fullURL, deleted)
 VALUES 
-($1,$2,$3)
+($1,$2,$3, false)
 ;
 `
 	//ON CONFLICT (fullURL) DO NOTHING
@@ -359,9 +359,9 @@ func (f DBStorage) AddShortBatch(origins []domain.URLForAddStorage) error {
 
 	q := `
 	INSERT INTO urls
-(idEncrypt, shortURL, fullURL)
+(idEncrypt, shortURL, fullURL, deleted)
 VALUES 
-($1,$2,$3)
+($1,$2,$3, false)
 ;
 `
 

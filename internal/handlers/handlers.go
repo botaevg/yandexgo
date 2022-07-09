@@ -185,7 +185,7 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if u.Deleted == true {
+	if u.Deleted {
 		w.WriteHeader(http.StatusGone)
 		w.Write([]byte("Gone"))
 		return
