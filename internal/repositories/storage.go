@@ -14,12 +14,13 @@ import (
 
 type Storage interface {
 	AddShort(domain.URLForAddStorage) (string, error)
-	GetFullURL(string) (string, error)
+	GetFullURL(string) (domain.URLForAddStorage, error)
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
 	GetAllShort(string) ([]domain.URLForGetAll, error)
 	Ping(ctx context.Context) error
 	AddShortBatch([]domain.URLForAddStorage) error
+	UpdateFlagDelete([]string, string) error
 }
 
 type FileStorage struct {
@@ -33,6 +34,36 @@ type DBStorage struct {
 type InMemoryStorage struct {
 	dataURL    map[string][]string
 	dataCookie map[string][][]byte
+}
+
+func (f InMemoryStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+	return nil
+}
+
+func (f FileStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+	return nil
+}
+
+func (f DBStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+
+	/*params := make([]interface{}, len(shorts))
+	for i, v := range shorts {
+		params[i] = v
+	}*/
+
+	q := `
+	update urls 
+	set deleted = true 
+	where shortURL = any($1) and idEncrypt = $2
+`
+
+	t, err := f.db.Exec(context.Background(), q, shorts, idUser)
+	log.Print(t.RowsAffected())
+	if err != nil {
+		log.Print("Запись не обновлена")
+		log.Print(err)
+	}
+	return nil
 }
 
 func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
@@ -114,31 +145,35 @@ func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLForGetAll, error) 
 
 }
 
-func (f FileStorage) GetFullURL(id string) (string, error) {
+func (f FileStorage) GetFullURL(id string) (domain.URLForAddStorage, error) {
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
-		return "", err
+		return domain.URLForAddStorage{}, err
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.Contains(line, id) {
-			return strings.Join(strings.Split(line, ":")[2:], ":"), nil
+			return domain.URLForAddStorage{
+				FullURL: strings.Join(strings.Split(line, ":")[2:], ":"),
+			}, nil
 
 		}
 	}
-	return "", errors.New("BadRequest")
+	return domain.URLForAddStorage{}, errors.New("BadRequest")
 
 }
 
-func (f InMemoryStorage) GetFullURL(id string) (string, error) {
+func (f InMemoryStorage) GetFullURL(id string) (domain.URLForAddStorage, error) {
 
 	if _, ok := f.dataURL[id]; !ok {
 
-		return "", errors.New("BadRequest")
+		return domain.URLForAddStorage{}, errors.New("BadRequest")
 	}
 
-	return f.dataURL[id][0], nil
+	return domain.URLForAddStorage{
+		FullURL: f.dataURL[id][0],
+	}, nil
 }
 
 func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
@@ -343,30 +378,35 @@ VALUES
 
 }
 
-func (f DBStorage) GetFullURL(shortURL string) (string, error) {
+func (f DBStorage) GetFullURL(shortURL string) (domain.URLForAddStorage, error) {
 	q := `
-	SELECT idEncrypt, fullURL FROM urls WHERE shortURL = $1
+	SELECT idEncrypt, fullURL, deleted FROM urls WHERE shortURL = $1
 `
 	rows, err := f.db.Query(context.Background(), q, shortURL)
 	if err != nil {
-		return "", err
+		return domain.URLForAddStorage{}, err
 	}
 	defer rows.Close()
 
 	var id, fullURL string
+	var deleted bool
 	for rows.Next() {
-		err = rows.Scan(&id, &fullURL)
+		err = rows.Scan(&id, &fullURL, &deleted)
 
 		if err != nil {
-			return "", err
+			return domain.URLForAddStorage{}, err
 		}
+
 	}
 	err = rows.Err()
 	if err != nil {
-		return "", err
+		return domain.URLForAddStorage{}, err
 	}
 
-	return fullURL, nil
+	return domain.URLForAddStorage{
+		FullURL: fullURL,
+		Deleted: deleted,
+	}, nil
 }
 
 func (f DBStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) error {

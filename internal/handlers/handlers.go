@@ -35,7 +35,7 @@ type URL struct {
 
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 	// update urls set deleted = 100 where shortURL = []shorts
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := cookies.VerificationCookie(h.storage, r, &w)
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -49,7 +49,31 @@ func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
+	/*
+		workerChs := make([]chan string, 0, len(shorts))
+		for _, v := range shorts{
+			workerCh := make(chan string)
+			workerCh <- v
+			workerChs = append(workerChs, workerCh)
+			close(workerCh)
+		}
+
+
+		wg := &sync.WaitGroup{}
+
+		wg.Add(1)
+		go
+		wg.Done()
+
+		wg.Wait()*/
+	err = h.storage.UpdateFlagDelete(shorts, idUser)
+	if err != nil {
+		log.Print("ошибка обновления удаления")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	log.Print(shorts)
+	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte("oke"))
 }
 
@@ -161,15 +185,20 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if u == "" {
+	if u.Deleted == true {
+		w.WriteHeader(http.StatusGone)
+		w.Write([]byte("Gone"))
+		return
+	}
+	if u.FullURL == "" {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Не найдено"))
 		return
 	}
 
-	w.Header().Set("Location", u)
+	w.Header().Set("Location", u.FullURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	w.Write([]byte(u))
+	w.Write([]byte(u.FullURL))
 
 }
 
