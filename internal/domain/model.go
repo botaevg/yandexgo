@@ -11,11 +11,10 @@ type APIShortBatch struct {
 }
 
 type URLForAddStorage struct {
-	IDUser        string
-	ShortURL      string
-	FullURL       string
-	Deleted       bool
-	CorrelationID string
+	IDUser   string
+	ShortURL string
+	FullURL  string
+	Deleted  bool
 }
 
 type URLForGetAll struct {

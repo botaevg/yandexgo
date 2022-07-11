@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
-	"github.com/botaevg/yandexgo/internal/cookies"
 	"github.com/botaevg/yandexgo/internal/domain"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
@@ -42,8 +41,9 @@ type DeleteURL struct {
 
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 	// update urls set deleted = 100 where shortURL = []shorts
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
-
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value("idUser").(string)
+	log.Print(idUser)
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -56,23 +56,6 @@ func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
-	/*
-		workerChs := make([]chan string, 0, len(shorts))
-		for _, v := range shorts{
-			workerCh := make(chan string)
-			workerCh <- v
-			workerChs = append(workerChs, workerCh)
-			close(workerCh)
-		}
-
-
-		wg := &sync.WaitGroup{}
-
-		wg.Add(1)
-		go
-		wg.Done()
-
-		wg.Wait()*/
 
 	h.asyncExecution <- DeleteURL{
 		shorts: shorts,
@@ -93,7 +76,9 @@ func (h *handler) DeleteAsync(d DeleteURL) {
 }
 
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value("idUser").(string)
+	log.Print(idUser)
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
@@ -111,30 +96,33 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var URLForAddStorage []domain.URLForAddStorage
+	var shortBatch []domain.APIShortBatch
+
 	for _, v := range originBatch {
+		shortNew := shorten.ShortURL()
 		URLForAddStorage = append(URLForAddStorage, domain.URLForAddStorage{
-			FullURL:       v.Origin,
-			CorrelationID: v.ID,
-			IDUser:        idUser,
-			ShortURL:      shorten.ShortURL(),
+			FullURL:  v.Origin,
+			IDUser:   idUser,
+			ShortURL: shortNew,
+		})
+		shortBatch = append(shortBatch, domain.APIShortBatch{
+			ID:       v.ID,
+			ShortURL: h.config.BaseURL + shortNew,
 		})
 	}
-	var shortBatch []domain.APIShortBatch
 
 	err = h.storage.AddShortBatch(URLForAddStorage)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	/*for i := range shortBatch {
-		shortBatch[i].ShortURL = h.config.BaseURL + shortBatch[i].ShortURL
-	}*/
-	for _, v := range URLForAddStorage {
+
+	/*for _, v := range URLForAddStorage {
 		shortBatch = append(shortBatch, domain.APIShortBatch{
 			ID:       v.CorrelationID,
 			ShortURL: h.config.BaseURL + v.ShortURL,
 		})
-	}
+	} // можно сразу формировать выше*/
 
 	b, err = json.Marshal(shortBatch)
 	if err != nil {
@@ -159,7 +147,8 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value("idUser").(string)
 	log.Print(idUser)
 
 	URLForGetAll, err := h.storage.GetAllShort(idUser)
@@ -189,7 +178,8 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value("idUser").(string)
 	log.Print(idUser)
 
 	id := chi.URLParam(r, "id")
@@ -218,7 +208,8 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value("idUser").(string)
 	log.Print(idUser)
 
 	b, err := io.ReadAll(r.Body) //reader
@@ -254,7 +245,8 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value("idUser").(string)
 	log.Print(idUser)
 
 	b, err := io.ReadAll(r.Body) //reader
