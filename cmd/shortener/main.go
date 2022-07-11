@@ -68,7 +68,14 @@ func (a App) Run() {
 		log.Print("репо мапа")
 		storage = repositories.NewInMemoryStorage()
 	}
-	h := handlers.New(a.config, storage)
+
+	asyncExecutionChannel := make(chan handlers.DeleteURL)
+	h := handlers.New(a.config, storage, asyncExecutionChannel)
+	go func() {
+		for job := range asyncExecutionChannel {
+			h.DeleteAsync(job)
+		}
+	}()
 
 	r.Get("/api/user/urls", h.GetAllShortURL)
 	r.Delete("/api/user/urls", h.APIDelete)

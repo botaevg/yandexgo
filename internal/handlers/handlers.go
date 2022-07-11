@@ -17,20 +17,27 @@ import (
 )
 
 type handler struct {
-	config  config.Config
-	storage repositories.Storage
+	config         config.Config
+	storage        repositories.Storage
+	asyncExecution chan DeleteURL
 }
 
-func New(cfg config.Config, storage repositories.Storage) *handler {
+func New(cfg config.Config, storage repositories.Storage, asyncExecution chan DeleteURL) *handler {
 	return &handler{
-		config:  cfg,
-		storage: storage,
+		config:         cfg,
+		storage:        storage,
+		asyncExecution: asyncExecution,
 	}
 }
 
 type URL struct {
 	FullURL  string `json:"url"`
 	ShortURL string `json:"result"`
+}
+
+type DeleteURL struct {
+	shorts []string
+	idUser string
 }
 
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
@@ -66,15 +73,23 @@ func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 		wg.Done()
 
 		wg.Wait()*/
-	err = h.storage.UpdateFlagDelete(shorts, idUser)
-	if err != nil {
-		log.Print("ошибка обновления удаления")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	h.asyncExecution <- DeleteURL{
+		shorts: shorts,
+		idUser: idUser,
 	}
+
 	log.Print(shorts)
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte("oke"))
+}
+
+func (h *handler) DeleteAsync(d DeleteURL) {
+	err := h.storage.UpdateFlagDelete(d.shorts, d.idUser)
+	if err != nil {
+		log.Print("ошибка обновления удаления")
+
+	}
 }
 
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
