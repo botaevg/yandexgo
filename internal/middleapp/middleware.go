@@ -6,7 +6,6 @@ import (
 	"github.com/botaevg/yandexgo/internal/cookies"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -72,22 +71,6 @@ func (a AuthMiddleware) CheckCookie(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idUser := cookies.VerificationCookie(a.storage, r, &w)
 
-		/*
-			x, err := r.Cookie("id")
-			if err != nil {
-				log.Print("нет такого кука")
-				value := ""
-				http.SetCookie(w, &http.Cookie{
-					Name:  "id",
-					Value: value,
-				})
-			} else {
-
-				log.Print(x)
-			}*/
-		log.Print("testtt")
-		log.Print(idUser)
-		log.Print("testtt")
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthKey("idUser"), idUser)))
 
 	})

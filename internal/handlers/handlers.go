@@ -41,8 +41,6 @@ type DeleteURL struct {
 }
 
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
-	// update urls set deleted = 100 where shortURL = []shorts
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
 	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body)
@@ -77,7 +75,6 @@ func (h *handler) DeleteAsync(d DeleteURL) {
 }
 
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
 	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body) //reader
@@ -117,13 +114,6 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*for _, v := range URLForAddStorage {
-		shortBatch = append(shortBatch, domain.APIShortBatch{
-			ID:       v.CorrelationID,
-			ShortURL: h.config.BaseURL + v.ShortURL,
-		})
-	} // можно сразу формировать выше*/
-
 	b, err = json.Marshal(shortBatch)
 	if err != nil {
 		log.Print("Marshal error")
@@ -147,7 +137,6 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
 	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	URLForGetAll, err := h.storage.GetAllShort(idUser)
@@ -177,7 +166,6 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
 
 	id := chi.URLParam(r, "id")
 
@@ -205,12 +193,8 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	log.Print("testtt")
 	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
-	log.Print(idUser)
-	log.Print("testtt")
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
@@ -243,7 +227,6 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
 	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body) //reader
