@@ -42,7 +42,10 @@ type DeleteURL struct {
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 	// update urls set deleted = 100 where shortURL = []shorts
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser := r.Context().Value("idUser").(string)
+	idUser, ok := r.Context().Value("idUser").(string)
+	if !ok {
+		log.Print(idUser)
+	}
 	log.Print(idUser)
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -77,9 +80,11 @@ func (h *handler) DeleteAsync(d DeleteURL) {
 
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser := r.Context().Value("idUser").(string)
+	idUser, ok := r.Context().Value("idUser").(string)
 	log.Print(idUser)
-
+	if !ok {
+		log.Print(idUser)
+	}
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
@@ -148,9 +153,11 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser := r.Context().Value("idUser").(string)
+	idUser, ok := r.Context().Value("idUser").(string)
 	log.Print(idUser)
-
+	if !ok {
+		log.Print(idUser)
+	}
 	URLForGetAll, err := h.storage.GetAllShort(idUser)
 
 	var allShortURL []domain.URLpair
@@ -179,9 +186,11 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser := r.Context().Value("idUser").(string)
+	idUser, ok := r.Context().Value("idUser").(string)
 	log.Print(idUser)
-
+	if !ok {
+		log.Print(idUser)
+	}
 	id := chi.URLParam(r, "id")
 
 	u, err := h.storage.GetFullURL(id)
@@ -209,9 +218,11 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser := r.Context().Value("idUser").(string)
+	idUser, ok := r.Context().Value("idUser").(string)
 	log.Print(idUser)
-
+	if !ok {
+		log.Print(idUser)
+	}
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
@@ -246,9 +257,11 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser := r.Context().Value("idUser").(string)
+	idUser, ok := r.Context().Value("idUser").(string)
 	log.Print(idUser)
-
+	if !ok {
+		log.Print(idUser)
+	}
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {

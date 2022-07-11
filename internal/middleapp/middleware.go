@@ -55,6 +55,8 @@ func GzipHandle(next http.Handler) http.Handler {
 	})
 }
 
+type AuthKey string
+
 type AuthMiddleware struct {
 	storage repositories.Storage
 }
@@ -82,7 +84,7 @@ func (a AuthMiddleware) CheckCookie(next http.Handler) http.Handler {
 
 				log.Print(x)
 			}*/
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "idUser", idUser)))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthKey("idUser"), idUser)))
 
 	})
 }
