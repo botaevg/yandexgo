@@ -52,7 +52,7 @@ func TestPostHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-
+			asyncExecutionChannel := make(chan handlers.DeleteURL)
 			x := handlers.New(config.Config{
 				ServerAddress:   ":8080",
 				BaseURL:         "http://localhost:8080/",
@@ -61,6 +61,7 @@ func TestPostHandler(t *testing.T) {
 				repositories.FileStorage{
 					FileStorage: "shortlist.txt",
 				},
+				asyncExecutionChannel,
 			)
 			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
@@ -115,6 +116,7 @@ func TestGetHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
+			asyncExecutionChannel := make(chan handlers.DeleteURL)
 			x := handlers.New(config.Config{
 
 				ServerAddress:   ":8080",
@@ -124,6 +126,7 @@ func TestGetHandler(t *testing.T) {
 				repositories.FileStorage{
 					FileStorage: "shortlist.txt",
 				},
+				asyncExecutionChannel,
 			)
 			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
@@ -213,13 +216,14 @@ func TestApiPost(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.inputBody))
 			request.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
-
+			asyncExecutionChannel := make(chan handlers.DeleteURL)
 			x := handlers.New(config.Config{
 				ServerAddress:   ":8080",
 				BaseURL:         "http://localhost:8080/",
 				FileStoragePath: "",
 			},
 				repositories.NewInMemoryStorage(),
+				asyncExecutionChannel,
 			)
 			h := http.HandlerFunc(x.APIPost)
 			h.ServeHTTP(w, request)
