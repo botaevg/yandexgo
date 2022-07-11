@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/domain"
+	"github.com/botaevg/yandexgo/internal/middleapp"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
@@ -42,11 +43,8 @@ type DeleteURL struct {
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 	// update urls set deleted = 100 where shortURL = []shorts
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser, ok := r.Context().Value("idUser").(string)
-	if !ok {
-		log.Print(idUser)
-	}
-	log.Print(idUser)
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,11 +78,8 @@ func (h *handler) DeleteAsync(d DeleteURL) {
 
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser, ok := r.Context().Value("idUser").(string)
-	log.Print(idUser)
-	if !ok {
-		log.Print(idUser)
-	}
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
+
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
@@ -153,11 +148,8 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser, ok := r.Context().Value("idUser").(string)
-	log.Print(idUser)
-	if !ok {
-		log.Print(idUser)
-	}
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
+
 	URLForGetAll, err := h.storage.GetAllShort(idUser)
 
 	var allShortURL []domain.URLpair
@@ -186,11 +178,7 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser, ok := r.Context().Value("idUser").(string)
-	log.Print(idUser)
-	if !ok {
-		log.Print(idUser)
-	}
+
 	id := chi.URLParam(r, "id")
 
 	u, err := h.storage.GetFullURL(id)
@@ -218,11 +206,11 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser, ok := r.Context().Value("idUser").(string)
+	log.Print("testtt")
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
+
 	log.Print(idUser)
-	if !ok {
-		log.Print(idUser)
-	}
+	log.Print("testtt")
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {
@@ -237,9 +225,8 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//shortURLs := shorten.ShortURL()
-	//err = h.storage.AddShort(strURL, shortURLs, idUser)
 	shortURLs, newShort, err := AddOrFindURL(h.storage, strURL, idUser)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -257,11 +244,8 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
 	//idUser := cookies.VerificationCookie(h.storage, r, &w)
-	idUser, ok := r.Context().Value("idUser").(string)
-	log.Print(idUser)
-	if !ok {
-		log.Print(idUser)
-	}
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
+
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
 	if err != nil {

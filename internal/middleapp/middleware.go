@@ -6,6 +6,7 @@ import (
 	"github.com/botaevg/yandexgo/internal/cookies"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -84,6 +85,9 @@ func (a AuthMiddleware) CheckCookie(next http.Handler) http.Handler {
 
 				log.Print(x)
 			}*/
+		log.Print("testtt")
+		log.Print(idUser)
+		log.Print("testtt")
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthKey("idUser"), idUser)))
 
 	})
