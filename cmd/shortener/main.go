@@ -48,7 +48,6 @@ func (a App) Run() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleapp.GzipHandle)
-	r.Use(middleapp.CheckCookie)
 
 	var storage repositories.Storage
 
@@ -68,7 +67,17 @@ func (a App) Run() {
 		log.Print("репо мапа")
 		storage = repositories.NewInMemoryStorage()
 	}
-	h := handlers.New(a.config, storage)
+
+	auth := middleapp.NewAuthMiddleware(storage)
+	r.Use(auth.CheckCookie)
+
+	asyncExecutionChannel := make(chan handlers.DeleteURL)
+	h := handlers.New(a.config, storage, asyncExecutionChannel)
+	go func() {
+		for job := range asyncExecutionChannel {
+			h.DeleteAsync(job)
+		}
+	}()
 
 	r.Get("/api/user/urls", h.GetAllShortURL)
 	r.Delete("/api/user/urls", h.APIDelete)

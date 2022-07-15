@@ -2,6 +2,9 @@ package middleapp
 
 import (
 	"compress/gzip"
+	"context"
+	"github.com/botaevg/yandexgo/internal/cookies"
+	"github.com/botaevg/yandexgo/internal/repositories"
 	"io"
 	"net/http"
 	"strings"
@@ -52,22 +55,23 @@ func GzipHandle(next http.Handler) http.Handler {
 	})
 }
 
-func CheckCookie(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		/*
-			x, err := r.Cookie("id")
-			if err != nil {
-				log.Print("нет такого кука")
-				value := ""
-				http.SetCookie(w, &http.Cookie{
-					Name:  "id",
-					Value: value,
-				})
-			} else {
+type AuthKey string
 
-				log.Print(x)
-			}*/
-		next.ServeHTTP(w, r)
+type AuthMiddleware struct {
+	storage repositories.Storage
+}
+
+func NewAuthMiddleware(storage repositories.Storage) *AuthMiddleware {
+	return &AuthMiddleware{
+		storage: storage,
+	}
+}
+
+func (a AuthMiddleware) CheckCookie(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idUser := cookies.VerificationCookie(a.storage, r, &w)
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), AuthKey("idUser"), idUser)))
 
 	})
 }

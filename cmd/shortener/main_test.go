@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/botaevg/yandexgo/internal/config"
 	"github.com/botaevg/yandexgo/internal/handlers"
+	"github.com/botaevg/yandexgo/internal/middleapp"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,7 @@ func TestPostHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
-
+			asyncExecutionChannel := make(chan handlers.DeleteURL)
 			x := handlers.New(config.Config{
 				ServerAddress:   ":8080",
 				BaseURL:         "http://localhost:8080/",
@@ -61,8 +62,10 @@ func TestPostHandler(t *testing.T) {
 				repositories.FileStorage{
 					FileStorage: "shortlist.txt",
 				},
+				asyncExecutionChannel,
 			)
 			h := http.HandlerFunc(x.PostHandler)
+			request = request.WithContext(context.WithValue(request.Context(), middleapp.AuthKey("idUser"), "testID"))
 			h.ServeHTTP(w, request)
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)
@@ -113,8 +116,10 @@ func TestGetHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
+			request = request.WithContext(context.WithValue(request.Context(), middleapp.AuthKey("idUser"), "testID"))
 			//request.Header.Set("content-type", "application/json")
 			w := httptest.NewRecorder()
+			asyncExecutionChannel := make(chan handlers.DeleteURL)
 			x := handlers.New(config.Config{
 
 				ServerAddress:   ":8080",
@@ -124,6 +129,7 @@ func TestGetHandler(t *testing.T) {
 				repositories.FileStorage{
 					FileStorage: "shortlist.txt",
 				},
+				asyncExecutionChannel,
 			)
 			h := http.HandlerFunc(x.PostHandler)
 			h.ServeHTTP(w, request)
@@ -212,14 +218,16 @@ func TestApiPost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.inputBody))
 			request.Header.Set("Content-Type", "application/json")
+			request = request.WithContext(context.WithValue(request.Context(), middleapp.AuthKey("idUser"), "testID"))
 			w := httptest.NewRecorder()
-
+			asyncExecutionChannel := make(chan handlers.DeleteURL)
 			x := handlers.New(config.Config{
 				ServerAddress:   ":8080",
 				BaseURL:         "http://localhost:8080/",
 				FileStoragePath: "",
 			},
 				repositories.NewInMemoryStorage(),
+				asyncExecutionChannel,
 			)
 			h := http.HandlerFunc(x.APIPost)
 			h.ServeHTTP(w, request)

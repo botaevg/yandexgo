@@ -14,12 +14,13 @@ import (
 
 type Storage interface {
 	AddShort(domain.URLForAddStorage) (string, error)
-	GetFullURL(string) (string, error)
+	GetFullURL(string) (domain.URLForAddStorage, error)
 	AddCookie(string, []byte, []byte) error
 	GetID(string) ([][]byte, error)
-	GetAllShort(string) ([]domain.URLForGetAll, error)
+	GetAllShort(string) ([]domain.URLForAddStorage, error)
 	Ping(ctx context.Context) error
 	AddShortBatch([]domain.URLForAddStorage) error
+	UpdateFlagDelete([]string, string) error
 }
 
 type FileStorage struct {
@@ -35,11 +36,84 @@ type InMemoryStorage struct {
 	dataCookie map[string][][]byte
 }
 
-func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
-	var urlUser []domain.URLForGetAll
+func (f InMemoryStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+	for _, v := range shorts {
+		if f.dataURL[v][1] == idUser {
+			f.dataURL[v][2] = "true"
+		}
+	}
+	return nil
+}
+
+func (f FileStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+	data, err := os.ReadFile(f.FileStorage)
+	if err != nil {
+		return err
+	}
+	newData, err := os.Create(f.FileStorage)
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+
+		lineSlice := strings.Split(line, ":")
+		contain := false
+		if len(lineSlice) > 2 {
+			for _, v := range shorts {
+				if v == lineSlice[1] {
+					contain = true
+					log.Print(contain)
+				}
+			}
+		}
+		if contain {
+
+			_, err = newData.WriteString(lineSlice[0] + ":" + lineSlice[1] + ":" + "true" + ":" + strings.Join(lineSlice[3:], ":") + "\n")
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err = newData.WriteString(line + "\n")
+			log.Print("запись")
+			log.Print(line)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	defer newData.Close()
+
+	return nil
+}
+
+func (f DBStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+
+	/*params := make([]interface{}, len(shorts))
+	for i, v := range shorts {
+		params[i] = v
+	}*/
+
+	q := `
+	update urls 
+	set deleted = true 
+	where shortURL = any($1) and idEncrypt = $2
+`
+
+	t, err := f.db.Exec(context.Background(), q, shorts, idUser)
+	log.Print(t.RowsAffected())
+	if err != nil {
+		log.Print("Запись не обновлена")
+		log.Print(err)
+	}
+	return nil
+}
+
+func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLForAddStorage, error) {
+	var urlUser []domain.URLForAddStorage
 	for key, value := range f.dataURL {
 		if value[1] == idUser {
-			x := domain.URLForGetAll{
+			x := domain.URLForAddStorage{
 				FullURL:  value[0],
 				ShortURL: key,
 			}
@@ -54,8 +128,8 @@ func (f InMemoryStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, erro
 	return urlUser, nil
 }
 
-func (f FileStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
-	var urlUser []domain.URLForGetAll
+func (f FileStorage) GetAllShort(idUser string) ([]domain.URLForAddStorage, error) {
+	var urlUser []domain.URLForAddStorage
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
@@ -66,8 +140,8 @@ func (f FileStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, idUser) {
 			short := strings.Split(line, ":")[1]
-			full := strings.Join(strings.Split(line, ":")[2:], ":")
-			x := domain.URLForGetAll{
+			full := strings.Join(strings.Split(line, ":")[3:], ":")
+			x := domain.URLForAddStorage{
 				FullURL:  full,
 				ShortURL: short,
 			}
@@ -83,23 +157,23 @@ func (f FileStorage) GetAllShort(idUser string) ([]domain.URLForGetAll, error) {
 	return urlUser, nil
 }
 
-func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLForGetAll, error) {
+func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLForAddStorage, error) {
 	q := `
 	SELECT shortURL, fullURL FROM urls WHERE idEncrypt = $1
 `
 	rows, err := f.db.Query(context.Background(), q, idEncrypt)
 	if err != nil {
-		return []domain.URLForGetAll{}, err
+		return []domain.URLForAddStorage{}, err
 	}
 	defer rows.Close()
 
-	var urlUser []domain.URLForGetAll
+	var urlUser []domain.URLForAddStorage
 
 	for rows.Next() {
-		x := domain.URLForGetAll{}
+		x := domain.URLForAddStorage{}
 		err = rows.Scan(&x.ShortURL, &x.FullURL)
 		if err != nil {
-			return []domain.URLForGetAll{}, err
+			return []domain.URLForAddStorage{}, err
 		}
 
 		urlUser = append(urlUser, x)
@@ -107,38 +181,53 @@ func (f DBStorage) GetAllShort(idEncrypt string) ([]domain.URLForGetAll, error) 
 	}
 	err = rows.Err()
 	if err != nil {
-		return []domain.URLForGetAll{}, err
+		return []domain.URLForAddStorage{}, err
 	}
 
 	return urlUser, nil
 
 }
 
-func (f FileStorage) GetFullURL(id string) (string, error) {
+func (f FileStorage) GetFullURL(id string) (domain.URLForAddStorage, error) {
 
 	data, err := os.ReadFile(f.FileStorage)
 	if err != nil {
-		return "", err
+		return domain.URLForAddStorage{}, err
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.Contains(line, id) {
-			return strings.Join(strings.Split(line, ":")[2:], ":"), nil
+			var deleted bool
+			if strings.Split(line, ":")[2] == "true" {
+				deleted = true
+			}
+			return domain.URLForAddStorage{
+				FullURL: strings.Join(strings.Split(line, ":")[3:], ":"),
+				Deleted: deleted,
+			}, nil
 
 		}
 	}
-	return "", errors.New("BadRequest")
+	return domain.URLForAddStorage{}, errors.New("BadRequest")
 
 }
 
-func (f InMemoryStorage) GetFullURL(id string) (string, error) {
+func (f InMemoryStorage) GetFullURL(id string) (domain.URLForAddStorage, error) {
 
 	if _, ok := f.dataURL[id]; !ok {
 
-		return "", errors.New("BadRequest")
+		return domain.URLForAddStorage{}, errors.New("BadRequest")
 	}
 
-	return f.dataURL[id][0], nil
+	var deleted bool
+	if f.dataURL[id][2] == "true" {
+		deleted = true
+	}
+
+	return domain.URLForAddStorage{
+		FullURL: f.dataURL[id][0],
+		Deleted: deleted,
+	}, nil
 }
 
 func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
@@ -149,7 +238,7 @@ func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(item.IDUser + ":" + item.ShortURL + ":" + item.FullURL + "\n")
+	_, err = file.WriteString(item.IDUser + ":" + item.ShortURL + ":" + "false" + ":" + item.FullURL + "\n")
 	if err != nil {
 		return "", err
 	}
@@ -157,7 +246,7 @@ func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 }
 
 func (f InMemoryStorage) AddShort(item domain.URLForAddStorage) (string, error) {
-	f.dataURL[item.ShortURL] = []string{item.FullURL, item.IDUser}
+	f.dataURL[item.ShortURL] = []string{item.FullURL, item.IDUser, "false"}
 	return item.ShortURL, nil
 }
 
@@ -242,9 +331,9 @@ func NewDB(pool *pgxpool.Pool) *DBStorage {
 func (f DBStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 	q := `
 	INSERT INTO urls
-(idEncrypt, shortURL, fullURL)
+(idEncrypt, shortURL, fullURL, deleted)
 VALUES 
-($1,$2,$3)
+($1,$2,$3, false)
 ;
 `
 	//ON CONFLICT (fullURL) DO NOTHING
@@ -324,9 +413,9 @@ func (f DBStorage) AddShortBatch(origins []domain.URLForAddStorage) error {
 
 	q := `
 	INSERT INTO urls
-(idEncrypt, shortURL, fullURL)
+(idEncrypt, shortURL, fullURL, deleted)
 VALUES 
-($1,$2,$3)
+($1,$2,$3, false)
 ;
 `
 
@@ -343,30 +432,35 @@ VALUES
 
 }
 
-func (f DBStorage) GetFullURL(shortURL string) (string, error) {
+func (f DBStorage) GetFullURL(shortURL string) (domain.URLForAddStorage, error) {
 	q := `
-	SELECT idEncrypt, fullURL FROM urls WHERE shortURL = $1
+	SELECT idEncrypt, fullURL, deleted FROM urls WHERE shortURL = $1
 `
 	rows, err := f.db.Query(context.Background(), q, shortURL)
 	if err != nil {
-		return "", err
+		return domain.URLForAddStorage{}, err
 	}
 	defer rows.Close()
 
 	var id, fullURL string
+	var deleted bool
 	for rows.Next() {
-		err = rows.Scan(&id, &fullURL)
+		err = rows.Scan(&id, &fullURL, &deleted)
 
 		if err != nil {
-			return "", err
+			return domain.URLForAddStorage{}, err
 		}
+
 	}
 	err = rows.Err()
 	if err != nil {
-		return "", err
+		return domain.URLForAddStorage{}, err
 	}
 
-	return fullURL, nil
+	return domain.URLForAddStorage{
+		FullURL: fullURL,
+		Deleted: deleted,
+	}, nil
 }
 
 func (f DBStorage) AddCookie(idEncrypt string, key []byte, nonce []byte) error {

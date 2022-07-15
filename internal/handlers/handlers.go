@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/botaevg/yandexgo/internal/config"
-	"github.com/botaevg/yandexgo/internal/cookies"
 	"github.com/botaevg/yandexgo/internal/domain"
+	"github.com/botaevg/yandexgo/internal/middleapp"
 	"github.com/botaevg/yandexgo/internal/repositories"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/go-chi/chi/v5"
@@ -17,14 +17,16 @@ import (
 )
 
 type handler struct {
-	config  config.Config
-	storage repositories.Storage
+	config         config.Config
+	storage        repositories.Storage
+	asyncExecution chan DeleteURL
 }
 
-func New(cfg config.Config, storage repositories.Storage) *handler {
+func New(cfg config.Config, storage repositories.Storage, asyncExecution chan DeleteURL) *handler {
 	return &handler{
-		config:  cfg,
-		storage: storage,
+		config:         cfg,
+		storage:        storage,
+		asyncExecution: asyncExecution,
 	}
 }
 
@@ -33,9 +35,13 @@ type URL struct {
 	ShortURL string `json:"result"`
 }
 
+type DeleteURL struct {
+	shorts []string
+	idUser string
+}
+
 func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
-	// update urls set deleted = 100 where shortURL = []shorts
-	//idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -49,12 +55,27 @@ func (h *handler) APIDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errors.New("BadRequest").Error(), http.StatusBadRequest)
 		return
 	}
+
+	h.asyncExecution <- DeleteURL{
+		shorts: shorts,
+		idUser: idUser,
+	}
+
 	log.Print(shorts)
+	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte("oke"))
 }
 
+func (h *handler) DeleteAsync(d DeleteURL) {
+	err := h.storage.UpdateFlagDelete(d.shorts, d.idUser)
+	if err != nil {
+		log.Print("ошибка обновления удаления")
+
+	}
+}
+
 func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
@@ -72,29 +93,25 @@ func (h *handler) APIShortBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var URLForAddStorage []domain.URLForAddStorage
+	var shortBatch []domain.APIShortBatch
+
 	for _, v := range originBatch {
+		shortNew := shorten.ShortURL()
 		URLForAddStorage = append(URLForAddStorage, domain.URLForAddStorage{
-			FullURL:       v.Origin,
-			CorrelationID: v.ID,
-			IDUser:        idUser,
-			ShortURL:      shorten.ShortURL(),
+			FullURL:  v.Origin,
+			IDUser:   idUser,
+			ShortURL: shortNew,
+		})
+		shortBatch = append(shortBatch, domain.APIShortBatch{
+			ID:       v.ID,
+			ShortURL: h.config.BaseURL + shortNew,
 		})
 	}
-	var shortBatch []domain.APIShortBatch
 
 	err = h.storage.AddShortBatch(URLForAddStorage)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-	/*for i := range shortBatch {
-		shortBatch[i].ShortURL = h.config.BaseURL + shortBatch[i].ShortURL
-	}*/
-	for _, v := range URLForAddStorage {
-		shortBatch = append(shortBatch, domain.APIShortBatch{
-			ID:       v.CorrelationID,
-			ShortURL: h.config.BaseURL + v.ShortURL,
-		})
 	}
 
 	b, err = json.Marshal(shortBatch)
@@ -120,8 +137,7 @@ func (h *handler) CheckPing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
-	log.Print(idUser)
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	URLForGetAll, err := h.storage.GetAllShort(idUser)
 
@@ -150,8 +166,6 @@ func (h *handler) GetAllShortURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
-	log.Print(idUser)
 
 	id := chi.URLParam(r, "id")
 
@@ -161,21 +175,25 @@ func (h *handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if u == "" {
+	if u.Deleted {
+		w.WriteHeader(http.StatusGone)
+		w.Write([]byte("Gone"))
+		return
+	}
+	if u.FullURL == "" {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Не найдено"))
 		return
 	}
 
-	w.Header().Set("Location", u)
+	w.Header().Set("Location", u.FullURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	w.Write([]byte(u))
+	w.Write([]byte(u.FullURL))
 
 }
 
 func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
-	log.Print(idUser)
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
@@ -191,9 +209,8 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//shortURLs := shorten.ShortURL()
-	//err = h.storage.AddShort(strURL, shortURLs, idUser)
 	shortURLs, newShort, err := AddOrFindURL(h.storage, strURL, idUser)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -210,8 +227,7 @@ func (h *handler) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) APIPost(w http.ResponseWriter, r *http.Request) {
-	idUser := cookies.VerificationCookie(h.storage, r, &w)
-	log.Print(idUser)
+	idUser := r.Context().Value(middleapp.AuthKey("idUser")).(string)
 
 	b, err := io.ReadAll(r.Body) //reader
 	// обрабатываем ошибку
