@@ -7,6 +7,7 @@ import (
 	"github.com/botaevg/yandexgo/internal/domain"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"golang.org/x/exp/slices"
 	"log"
 	"os"
 	"strings"
@@ -37,10 +38,42 @@ type InMemoryStorage struct {
 }
 
 func (f InMemoryStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+	for _, v := range shorts {
+		if f.dataURL[v][1] == idUser {
+			f.dataURL[v][2] = "true"
+		}
+	}
 	return nil
 }
 
 func (f FileStorage) UpdateFlagDelete(shorts []string, idUser string) error {
+	data, err := os.ReadFile(f.FileStorage)
+	if err != nil {
+		return err
+	}
+	newData, err := os.Create(f.FileStorage)
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		lineSlice := strings.Split(line, ":")
+		log.Print(lineSlice)
+		log.Print(line)
+		if len(lineSlice) > 1 && slices.Contains(shorts, lineSlice[1]) {
+			_, err = newData.WriteString(lineSlice[0] + ":" + lineSlice[1] + ":" + "true" + ":" + strings.Join(lineSlice[3:], ":") + "\n")
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err = newData.WriteString(line + "\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	defer newData.Close()
+
 	return nil
 }
 
@@ -97,7 +130,7 @@ func (f FileStorage) GetAllShort(idUser string) ([]domain.URLForAddStorage, erro
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, idUser) {
 			short := strings.Split(line, ":")[1]
-			full := strings.Join(strings.Split(line, ":")[2:], ":")
+			full := strings.Join(strings.Split(line, ":")[3:], ":")
 			x := domain.URLForAddStorage{
 				FullURL:  full,
 				ShortURL: short,
@@ -154,8 +187,13 @@ func (f FileStorage) GetFullURL(id string) (domain.URLForAddStorage, error) {
 
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.Contains(line, id) {
+			var deleted bool
+			if strings.Split(line, ":")[2] == "true" {
+				deleted = true
+			}
 			return domain.URLForAddStorage{
-				FullURL: strings.Join(strings.Split(line, ":")[2:], ":"),
+				FullURL: strings.Join(strings.Split(line, ":")[3:], ":"),
+				Deleted: deleted,
 			}, nil
 
 		}
@@ -171,8 +209,14 @@ func (f InMemoryStorage) GetFullURL(id string) (domain.URLForAddStorage, error) 
 		return domain.URLForAddStorage{}, errors.New("BadRequest")
 	}
 
+	var deleted bool
+	if f.dataURL[id][2] == "true" {
+		deleted = true
+	}
+
 	return domain.URLForAddStorage{
 		FullURL: f.dataURL[id][0],
+		Deleted: deleted,
 	}, nil
 }
 
@@ -184,7 +228,7 @@ func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(item.IDUser + ":" + item.ShortURL + ":" + item.FullURL + "\n")
+	_, err = file.WriteString(item.IDUser + ":" + item.ShortURL + ":" + "false" + ":" + item.FullURL + "\n")
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +236,7 @@ func (f FileStorage) AddShort(item domain.URLForAddStorage) (string, error) {
 }
 
 func (f InMemoryStorage) AddShort(item domain.URLForAddStorage) (string, error) {
-	f.dataURL[item.ShortURL] = []string{item.FullURL, item.IDUser}
+	f.dataURL[item.ShortURL] = []string{item.FullURL, item.IDUser, "false"}
 	return item.ShortURL, nil
 }
 
