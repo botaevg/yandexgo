@@ -7,7 +7,6 @@ import (
 	"github.com/botaevg/yandexgo/internal/domain"
 	"github.com/botaevg/yandexgo/internal/shorten"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"golang.org/x/exp/slices"
 	"log"
 	"os"
 	"strings"
@@ -56,16 +55,27 @@ func (f FileStorage) UpdateFlagDelete(shorts []string, idUser string) error {
 		return err
 	}
 	for _, line := range strings.Split(string(data), "\n") {
+
 		lineSlice := strings.Split(line, ":")
-		log.Print(lineSlice)
-		log.Print(line)
-		if len(lineSlice) > 1 && slices.Contains(shorts, lineSlice[1]) {
+		contain := false
+		if len(lineSlice) > 2 {
+			for _, v := range shorts {
+				if v == lineSlice[1] {
+					contain = true
+					log.Print(contain)
+				}
+			}
+		}
+		if contain {
+
 			_, err = newData.WriteString(lineSlice[0] + ":" + lineSlice[1] + ":" + "true" + ":" + strings.Join(lineSlice[3:], ":") + "\n")
 			if err != nil {
 				return err
 			}
 		} else {
 			_, err = newData.WriteString(line + "\n")
+			log.Print("запись")
+			log.Print(line)
 			if err != nil {
 				return err
 			}
